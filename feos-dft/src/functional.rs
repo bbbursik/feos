@@ -233,6 +233,40 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         Ok(f * t * U::reference_pressure())
     }
 
+    pub fn helmholtz_energy_density<U, D>(
+        &self,
+        temperature: QuantityScalar<U>,
+        density: &QuantityArray<U, D::Larger>,
+        convolver: &Rc<dyn Convolver<f64, D>>,
+    ) -> EosResult<QuantityArray<U, D>>
+    where
+        U: EosUnit,
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        // Calculate residual Helmholtz energy density and functional derivative
+        let t = temperature.to_reduced(U::reference_temperature())?;
+        let rho = density.to_reduced(U::reference_density())?;
+        let (mut f, dfdrho) = self.functional_derivative(t, &rho, convolver)?;
+
+        // Calculate the grand potential density
+        // for ((rho, dfdrho), &m) in rho
+        //     .outer_iter()
+        //     .zip(dfdrho.outer_iter())
+        //     .zip(self.m().iter())
+        // {
+        //     f -= &((&dfdrho + m) * &rho);
+        // }
+
+        let bond_lengths = self.bond_lengths(t);
+        for segment in bond_lengths.node_indices() {
+            let n = bond_lengths.neighbors(segment).count();
+            f += &(&rho.index_axis(Axis(0), segment.index()) * (0.5 * n as f64));
+        }
+
+        Ok(f * t * U::reference_pressure())
+    }
+
     pub(crate) fn ideal_gas_contribution<D>(
         &self,
         temperature: f64,
@@ -271,7 +305,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         phi * temperature
     }
 
-    fn intrinsic_helmholtz_energy_density<D, N>(
+    pub fn intrinsic_helmholtz_energy_density<D, N>(
         &self,
         temperature: N,
         density: &Array<f64, D::Larger>,

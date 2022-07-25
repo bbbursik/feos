@@ -565,12 +565,35 @@ where
     }
 
     pub fn grand_potential_density(&self) -> EosResult<QuantityArray<U, D>> {
-        self.dft
-            .grand_potential_density(self.temperature, &self.density, &self.convolver)
+        let t = self.temperature.to_reduced(U::reference_temperature())?;
+
+        let omega =
+            self.dft
+                .grand_potential_density(self.temperature, &self.density, &self.convolver)?;
+        let grand_potential_density = omega;
+        // + (&self.external_potential * (&self.density.to_reduced(U::reference_density())?))
+        //     .sum_axis(Axis_nd(0))
+        //     * U::reference_pressure()
+        //     * t;
+        Ok(grand_potential_density)
     }
 
     pub fn grand_potential(&self) -> EosResult<QuantityScalar<U>> {
         Ok(self.integrate(&self.grand_potential_density()?))
+    }
+
+    pub fn helmholtz_energy_density(&self) -> EosResult<QuantityArray<U, D>> {
+        let t = self.temperature.to_reduced(U::reference_temperature())?;
+
+        let f =
+            self.dft
+                .helmholtz_energy_density(self.temperature, &self.density, &self.convolver)?;
+        // let grand_potential_density = omega;
+        // + (&self.external_potential * (&self.density.to_reduced(U::reference_density())?))
+        //     .sum_axis(Axis_nd(0))
+        //     * U::reference_pressure()
+        //     * t;
+        Ok(f)
     }
 
     pub fn internal_energy(&self, contributions: Contributions) -> EosResult<QuantityScalar<U>> {

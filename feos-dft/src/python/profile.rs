@@ -178,6 +178,13 @@ macro_rules! impl_profile {
                     self.0.profile.grand_potential_density()?,
                 ))
             }
+
+            #[getter]
+            fn get_helmholtz_energy_density(&self) -> PyResult<$si_arr> {
+                Ok($si_arr::from(
+                    self.0.profile.helmholtz_energy_density()?,
+                ))
+            }
         }
     };
 }
