@@ -7,6 +7,8 @@ use feos_core::parameter::Parameter;
 use feos_core::{IdealGasContribution, MolarWeight};
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::solvation::PairPotential;
+use feos_dft::entropy_scaling::EntropyScalingFunctional;
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use ndarray::{Array1, Array2};
 use num_traits::One;
@@ -28,6 +30,7 @@ pub struct PcSaftFunctional {
     fmt_version: FMTVersion,
     options: PcSaftOptions,
     contributions: Vec<Box<dyn FunctionalContribution>>,
+    entropy_scaling_contributions: Vec<Box<dyn EntropyScalingFunctionalContribution>>,
     joback: Joback,
 }
 
@@ -46,6 +49,8 @@ impl PcSaftFunctional {
         saft_options: PcSaftOptions,
     ) -> DFT<Self> {
         let mut contributions: Vec<Box<dyn FunctionalContribution>> = Vec::with_capacity(4);
+        let mut entropy_scaling_contributions: Vec<Box<dyn EntropyScalingFunctionalContribution>> =
+            Vec::with_capacity(4);
 
         if matches!(
             fmt_version,
@@ -53,7 +58,10 @@ impl PcSaftFunctional {
         ) && parameters.m.len() == 1
         {
             let fmt_assoc = PureFMTAssocFunctional::new(parameters.clone(), fmt_version);
-            contributions.push(Box::new(fmt_assoc));
+            contributions.push(Box::new(fmt_assoc.clone()));
+            
+            entropy_scaling_contributions.push(Box::new(fmt_assoc.clone()));
+           
             if parameters.m.iter().any(|&mi| mi > 1.0) {
                 let chain = PureChainFunctional::new(parameters.clone());
                 contributions.push(Box::new(chain));

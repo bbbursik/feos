@@ -43,6 +43,42 @@ impl Pore1D {
     }
 }
 
+/// Parameters required to specify a 3D pore.
+pub struct Pore3D<U> {
+    system_size: [QuantityScalar<U>; 3],
+    n_grid: [usize; 3],
+    coordinates: QuantityArray2<U>,
+    sigma_ss: Array1<f64>,
+    epsilon_k_ss: Array1<f64>,
+    potential_cutoff: Option<f64>,
+    cutoff_radius: Option<QuantityScalar<U>>,
+    l_grid: Option<[QuantityScalar<U>; 3]>,
+}
+
+impl<U> Pore3D<U> {
+    pub fn new(
+        system_size: [QuantityScalar<U>; 3],
+        n_grid: [usize; 3],
+        coordinates: QuantityArray2<U>,
+        sigma_ss: Array1<f64>,
+        epsilon_k_ss: Array1<f64>,
+        potential_cutoff: Option<f64>,
+        cutoff_radius: Option<QuantityScalar<U>>,
+        l_grid: Option<[QuantityScalar<U>; 3]>,
+    ) -> Self {
+        Self {
+            system_size,
+            n_grid,
+            coordinates,
+            sigma_ss,
+            epsilon_k_ss,
+            potential_cutoff,
+            cutoff_radius,
+            l_grid,
+        }
+    }
+}
+
 /// Trait for the generic implementation of adsorption applications.
 pub trait PoreSpecification<D: Dimension> {
     /// Initialize a new single pore.
@@ -205,10 +241,71 @@ impl PoreSpecification<Ix1> for Pore1D {
     }
 }
 
-fn external_potential_1d<P: FluidParameters>(
-    pore_width: SINumber,
-    temperature: SINumber,
-    potential: &ExternalPotential,
+impl<U: EosUnit> PoreSpecification<U, Ix3> for Pore3D<U> {
+    fn initialize<F: HelmholtzEnergyFunctional + FluidParameters>(
+        &self,
+        bulk: &State<U, DFT<F>>,
+        density: Option<&QuantityArray4<U>>,
+        external_potential: Option<&Array4<f64>>,
+    ) -> EosResult<PoreProfile3D<U, F>> {
+        let dft: &F = &bulk.eos;
+
+        // determine length of grid. Usually this is the system size but in some cases it is nice to set the DFT-domain different from the system size (e.g. when the cutoff radius is bigger than the DFT domain)
+        let l_grid = self.l_grid.unwrap_or(self.system_size);
+
+       // generate grid
+       let x = Axis::new_cartesian(self.n_grid[0], l_grid[0], None)?;
+       let y = Axis::new_cartesian(self.n_grid[1], l_grid[1], None)?;
+       let z = Axis::new_cartesian(self.n_grid[2], l_grid[2], None)?;
+        // move center of geometry of solute to box center
+        let coordinates = Array2::from_shape_fn(self.coordinates.raw_dim(), |(i, j)| {
+            (self.coordinates.get((i, j)))
+                .to_reduced(U::reference_length())
+                .unwrap()
+        });
+
+        // temperature
+        let t = bulk.temperature.to_reduced(U::reference_temperature())?;
+
+        // calculate external potential
+        let external_potential = external_potential.map_or_else(
+            || {
+                external_potential_3d(
+                    dft,
+                    [&x, &y, &z],
+                    self.system_size,
+                    coordinates,
+                    &self.sigma_ss,
+                    &self.epsilon_k_ss,
+                    self.cutoff_radius,
+                    self.potential_cutoff,
+                    t,
+                )
+            },
+            |e| Ok(e.clone()),
+        )?;
+
+        // initialize convolver
+        let grid = Grid::Periodical3(x, y, z);
+        let weight_functions = dft.weight_functions(t);
+        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+
+        Ok(PoreProfile {
+            profile: DFTProfile::new(grid, convolver, bulk, Some(external_potential), density)?,
+            grand_potential: None,
+            interfacial_tension: None,
+        })
+    }
+
+    fn dimension(&self) -> i32 {
+        3
+    }
+}
+
+fn external_potential_1d<U: EosUnit, P: FluidParameters>(
+    pore_width: QuantityScalar<U>,
+    temperature: QuantityScalar<U>,
+    potential: &ExternalPotential<U>,
     fluid_parameters: &P,
     axis: &Axis,
     potential_cutoff: Option<f64>,

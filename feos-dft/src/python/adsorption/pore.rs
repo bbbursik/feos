@@ -158,8 +158,8 @@ macro_rules! impl_pore {
         /// Pore3D
         ///
         #[pyclass(name = "Pore3D")]
-        #[pyo3(text_signature = "(system_size, n_grid, coordinates, sigma_ss, epsilon_k_ss, potential_cutoff=None, cutoff_radius=None)")]
-        pub struct PyPore3D(Pore3D);
+        #[pyo3(text_signature = "(system_size, n_grid, coordinates, sigma_ss, epsilon_k_ss, potential_cutoff=None, cutoff_radius=None, l_grid=None)")]
+        pub struct PyPore3D(Pore3D<SIUnit>);
 
         #[pyclass(name = "PoreProfile3D")]
         pub struct PyPoreProfile3D(PoreProfile3D<$func>);
@@ -177,6 +177,7 @@ macro_rules! impl_pore {
                 epsilon_k_ss: &PyArray1<f64>,
                 potential_cutoff: Option<f64>,
                 cutoff_radius: Option<PySINumber>,
+                l_grid: Option<[PySINumber; 3]>,
             ) -> Self {
                 Self(Pore3D::new(
                     [system_size[0].into(), system_size[1].into(), system_size[2].into()],
@@ -186,6 +187,7 @@ macro_rules! impl_pore {
                     epsilon_k_ss.to_owned_array(),
                     potential_cutoff,
                     cutoff_radius.map(|c| c.into()),
+                    l_grid.map(|c| [c[0].into(), c[1].into(), c[2].into()])
                 ))
             }
 
