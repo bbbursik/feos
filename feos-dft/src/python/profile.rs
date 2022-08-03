@@ -194,6 +194,29 @@ macro_rules! impl_1d_profile {
             PyArray2,
             [$([0, $ax]),+]
         );
+        
+        #[pymethods]
+        impl $struct {
+
+            #[getter]
+            fn get_viscosity_profile(
+                &mut self,
+                // contributions: PyContributions,
+            ) -> PyResult<PySIArray1> {
+                Ok(PySIArray1::from(
+                    self.0.profile.viscosity_profile_1d()?,
+                ))
+            }
+
+            #[getter]
+            fn get_weighted_densities_entropy<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py PyArray2<f64>>> {
+                let n = self.0.profile.weighted_densities_entropy()?;
+                Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
+            }
+        }
     };
 }
 
