@@ -3,6 +3,7 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::new_ret_no_self)]
 
+pub mod entropy_scaling;
 pub mod adsorption;
 mod convolver;
 mod functional;
