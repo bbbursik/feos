@@ -90,7 +90,6 @@ where
         // initialize the convolver
         let weight_functions_dual: Vec<WeightFunctionInfo<Dual64>> = self
             .dft
-            .functional
             .contributions()
             .iter()
             .map(|c| c.weight_functions(Dual64::from(temperature_red).derive()))
@@ -103,7 +102,6 @@ where
         // get the entropy scaling contributions which are defined in the implementation of EnropyScalingFunctional
         let functional_contributions_entropy = self
         .dft
-        .functional
         .entropy_scaling_contributions();
         
         // get the entropy scaling weight functions (defined in the contributions)
@@ -135,7 +133,7 @@ where
                 temperature_red,
                 &density_red,
                 &convolver_dual,
-                Contributions::Residual,
+                // Contributions::Residual, // in the new implementation this should always return the residual value, but double-check
             )?
             .iter()
             .zip(weighted_densities_entropy.iter())
@@ -184,7 +182,6 @@ where
         // calculate the reference (Chapman-Enskog viscosity)
         let visc_ref = self
             .dft
-            .functional
             .viscosity_reference::<Ix1>(&self.density, self.temperature)
             .unwrap();
 
@@ -199,7 +196,6 @@ where
         // calculate the shear viscosity from the residual reduced entropy 
         let mut viscosity_shear = self
             .dft
-            .functional
             .viscosity_correlation::<Ix1>(&s_res, &self.density)
             .unwrap()
             .mapv(f64::exp)
@@ -227,7 +223,6 @@ where
         
         let functional_contributions_entropy = self
         .dft
-        .functional
         .entropy_scaling_contributions();
         
         let weight_functions_entropy: Vec<WeightFunctionInfo<f64>> =

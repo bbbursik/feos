@@ -19,6 +19,7 @@ rustdoc-args = [ "--html-in-header", "./docs-header.html" ]
 quantity = { version = "0.5", features = ["linalg"] }
 feos-core = { version = "0.3", path = "../feos-core" }
 num-dual = "0.5"
+ndarray-npy = "*"
 ndarray = { version = "0.15", features = ["serde", "rayon"] }
 ndarray-stats = "0.5"
 rustdct = "0.7"

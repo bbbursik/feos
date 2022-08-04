@@ -1,10 +1,10 @@
 use super::PcSaftParameters;
-use crate::pcsaft::eos::PcSaftOptions;
+use crate::pcsaft::eos::{PcSaftOptions,omega22};
 use association::AssociationFunctional;
 use dispersion::AttractiveFunctional;
 use feos_core::joback::Joback;
 use feos_core::parameter::Parameter;
-use feos_core::{IdealGasContribution, MolarWeight};
+use feos_core::{IdealGasContribution, MolarWeight, EosError, EosUnit};
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::fundamental_measure_theory::{
     FMTContribution, FMTProperties, FMTVersion, MonomerShape,
@@ -14,12 +14,12 @@ use feos_dft::entropy_scaling::EntropyScalingFunctional;
 use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use hard_chain::ChainFunctional;
-use ndarray::{Array, Array1, Array2};
+use ndarray::{Array, Array1, Array2, Dimension, Axis as Axis_nd, Zip};
 use num_dual::DualNum;
 use num_traits::One;
 use pure_saft_functional::*;
 use quantity::si::*;
-use std::f64::consts::FRAC_PI_6;
+use std::f64::consts::{FRAC_PI_6, PI};
 use std::rc::Rc;
 
 mod association;
@@ -63,29 +63,49 @@ impl PcSaftFunctional {
         {
             let fmt_assoc = PureFMTAssocFunctional::new(parameters.clone(), fmt_version);
             contributions.push(Box::new(fmt_assoc.clone()));
-            
             entropy_scaling_contributions.push(Box::new(fmt_assoc.clone()));
+
+            // not entirely sure if this is correct or can be left away
+            //push second functional, since need a wd for the entropy-sclaing of ideal chain contribution
+            // entropy_scaling_contributions.push(Box::new(fmt_assoc.clone()));
+            entropy_scaling_contributions.insert(
+                0,
+                Box::new(PureChainFunctional::new(parameters.clone()).clone()),
+            );
            
             if parameters.m.iter().any(|&mi| mi > 1.0) {
                 let chain = PureChainFunctional::new(parameters.clone());
-                contributions.push(Box::new(chain));
+                contributions.push(Box::new(chain.clone()));
+                entropy_scaling_contributions.push(Box::new(chain.clone()));
             }
             let att = PureAttFunctional::new(parameters.clone());
-            contributions.push(Box::new(att));
+            contributions.push(Box::new(att.clone()));
+            entropy_scaling_contributions.push(Box::new(att.clone()));
         } else {
             // Hard sphere contribution
             let hs = FMTContribution::new(&parameters, fmt_version);
-            contributions.push(Box::new(hs));
+            contributions.push(Box::new(hs.clone()));
+
+            //push second fmt functional, since need a wd for the entropy-sclaing of ideal chain contribution
+            entropy_scaling_contributions.push(Box::new(hs.clone()));
+            entropy_scaling_contributions.insert(
+                0,
+                Box::new(ChainFunctional::new(parameters.clone()).clone()),
+            );
 
             // Hard chains
             if parameters.m.iter().any(|&mi| !mi.is_one()) {
                 let chain = ChainFunctional::new(parameters.clone());
-                contributions.push(Box::new(chain));
+                contributions.push(Box::new(chain.clone()));
+                entropy_scaling_contributions.push(Box::new(chain.clone()));
             }
+
 
             // Dispersion
             let att = AttractiveFunctional::new(parameters.clone());
-            contributions.push(Box::new(att));
+            contributions.push(Box::new(att.clone()));
+            entropy_scaling_contributions.push(Box::new(att.clone()));
+
 
             // Association
             if parameters.nassoc > 0 {
@@ -94,7 +114,9 @@ impl PcSaftFunctional {
                     saft_options.max_iter_cross_assoc,
                     saft_options.tol_cross_assoc,
                 );
-                contributions.push(Box::new(assoc));
+                contributions.push(Box::new(assoc.clone()));
+                entropy_scaling_contributions.push(Box::new(assoc.clone()));
+
             }
         }
 
@@ -108,6 +130,7 @@ impl PcSaftFunctional {
             fmt_version,
             options: saft_options,
             contributions,
+            entropy_scaling_contributions,
             joback,
         })
         .into()
@@ -175,5 +198,119 @@ impl FluidParameters for PcSaftFunctional {
 impl PairPotential for PcSaftFunctional {
     fn pair_potential(&self, i: usize, r: &Array1<f64>, _: f64) -> Array2<f64> {
         unimplemented!()
+    }
+}
+
+impl EntropyScalingFunctional<SIUnit> for PcSaftFunctional {
+    fn entropy_scaling_contributions(&self) -> &[Box<dyn EntropyScalingFunctionalContribution>] {
+        &self.entropy_scaling_contributions
+    }
+
+    fn viscosity_reference<D>(
+        &self,
+        density: &SIArray<D::Larger>,
+        temperature: SINumber,
+    ) -> Result<SIArray<D>, EosError>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        // Extracting parameters and molar weight
+        let p = &self.parameters;
+        let mw = &p.molarweight;
+        let n_comp = mw.len();
+
+        // Pure references for each component (do only depend on temperature);
+        // one reference per component, no grid distribution required
+        let ce_eos: Array1<f64> = (0..n_comp)
+            .map(|i| {
+                let tr = (temperature / p.epsilon_k[i] / KELVIN)
+                    .into_value()
+                    .unwrap();
+                (5.0 / 16.0
+                    * (mw[i] * GRAM / MOL * KB / NAV * temperature / PI)
+                        .sqrt()
+                        .unwrap()
+                    / omega22(tr)
+                    / (p.sigma[i] * ANGSTROM).powi(2))
+                .to_reduced(SIUnit::reference_viscosity())
+                .unwrap()
+            })
+            .collect();
+
+        // Factor `phi_ij`, no grid distribution required
+        let mut phi = Array2::zeros((n_comp, n_comp));
+        for ((i, j), phi_ij) in phi.indexed_iter_mut() {
+            *phi_ij = (1.0 + (ce_eos[i] / ce_eos[j]).sqrt() * (mw[j] / mw[i]).powf(1.0 / 4.0))
+                .powi(2)
+                / (8.0 * (1.0 + mw[i] / mw[j])).sqrt();
+        }
+
+        // Mole fraction at every grid point
+        let x = (density / &density.sum_axis(Axis_nd(0))).into_value()?; //.into_dimensionality().unwrap();
+
+        //
+        let visc_ref = Zip::from(x.lanes(Axis_nd(0)))
+        .map_collect(|x| {
+            // Sum over `j` at every grid point
+            let phi_i = phi
+                .outer_iter()
+                .map(|v| (&v * &x).sum())
+                .collect::<Array1<f64>>();
+            (&x * &ce_eos / &phi_i).sum()
+        });
+
+        // Return
+        Ok(visc_ref * SIUnit::reference_viscosity())
+    }
+
+    fn viscosity_correlation<D>(
+        &self,
+        s_res: &Array<f64, D>,
+        density: &SIArray<D::Larger>,
+    ) -> Result<Array<f64, D>, EosError>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        // Extract references to viscosity parameters
+        let coefficients = self
+            .parameters
+            .viscosity
+            .as_ref()
+            .expect("Missing viscosity coefficients");
+
+        // Mole fraction at every grid point
+        let x = (density / &density.sum_axis(Axis_nd(0))).into_value()?;
+
+        // Scale residual entropy with mean chain length
+        let mut m = Array::zeros(density.raw_dim());
+        for mut lane in m.lanes_mut(Axis_nd(0)) {
+            lane.assign(&self.parameters.m);
+        }
+        let m = (&x * &m).sum_axis(Axis_nd(0));
+        let s = s_res / &m;
+
+        // Mixture parameters
+        let mut pref = Array::zeros(x.raw_dim());
+        for mut lane in pref.lanes_mut(Axis_nd(0)) {
+            lane.assign(&self.parameters.m);
+        }
+        Zip::from(pref.lanes_mut(Axis_nd(0)))
+            .and(x.lanes(Axis_nd(0)))
+            .for_each(|mut pl, xl| pl *= &xl);
+        pref = &pref / &m;
+
+        let a = Zip::from(x.lanes(Axis_nd(0))).map_collect(|xl| (&coefficients.row(0) * &xl).sum());
+        let b =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(1) * &pl).sum());
+        let c =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(2) * &pl).sum());
+        let d =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(3) * &pl).sum());
+
+        // Return
+        Ok(((d * &s + c) * &s + b) * s + a)
+        // Ok(a + b * &s + c * &s.powi(2) + d * &s.powi(3))
     }
 }
