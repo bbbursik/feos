@@ -23,10 +23,13 @@ use crate::saftvrqmie::{FeynmanHibbsOrder, SaftVRQMieFunctional, SaftVRQMieOptio
 
 use feos_core::*;
 use feos_dft::adsorption::*;
+use feos_dft::entropy_scaling::*;
+use feos_dft::fundamental_measure_theory::{FMTFunctional, FMTVersion};
 use feos_dft::interface::*;
 use feos_dft::python::*;
 use feos_dft::solvation::*;
 use feos_dft::*;
+use ndarray::{Array, Array1, Array2, Dimension};
 use numpy::convert::ToPyArray;
 use numpy::{PyArray1, PyArray2, PyArray4};
 use pyo3::exceptions::{PyIndexError, PyValueError};
@@ -35,6 +38,8 @@ use pyo3::prelude::*;
 use pyo3::wrap_pymodule;
 use quantity::python::{PySINumber, PySIArray1, PySIArray2, PySIArray3, PySIArray4};
 use quantity::si::*;
+use quantity::{QuantityArray, QuantityScalar};
+
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -1,5 +1,5 @@
 use super::PcSaftParameters;
-use crate::pcsaft::eos::{PcSaftOptions,omega22};
+use crate::pcsaft::eos::{omega22, PcSaftOptions};
 use association::AssociationFunctional;
 use dispersion::AttractiveFunctional;
 use crate::association::Association;
@@ -7,14 +7,17 @@ use crate::hard_sphere::{FMTContribution, FMTVersion};
 use crate::pcsaft::eos::PcSaftOptions;
 use feos_core::joback::Joback;
 use feos_core::parameter::Parameter;
-use feos_core::{IdealGasContribution, MolarWeight, EosError, EosUnit};
+use feos_core::{EosError, EosUnit, IdealGasContribution, MolarWeight};
 use feos_dft::adsorption::FluidParameters;
-use feos_dft::solvation::PairPotential;
 use feos_dft::entropy_scaling::EntropyScalingFunctional;
 use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
+use feos_dft::fundamental_measure_theory::{
+    FMTContribution, FMTProperties, FMTVersion, MonomerShape,
+};
+use feos_dft::solvation::PairPotential;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use hard_chain::ChainFunctional;
-use ndarray::{Array, Array1, Array2, Dimension, Axis as Axis_nd, Zip};
+use ndarray::{Array, Array1, Array2, Axis as Axis_nd, Dimension, Zip};
 use num_dual::DualNum;
 use num_traits::One;
 use quantity::si::*;
@@ -73,7 +76,7 @@ impl PcSaftFunctional {
                 0,
                 Box::new(PureChainFunctional::new(parameters.clone()).clone()),
             );
-           
+
             if parameters.m.iter().any(|&mi| mi > 1.0) {
                 let chain = PureChainFunctional::new(parameters.clone());
                 contributions.push(Box::new(chain.clone()));
@@ -101,12 +104,10 @@ impl PcSaftFunctional {
                 entropy_scaling_contributions.push(Box::new(chain.clone()));
             }
 
-
             // Dispersion
             let att = AttractiveFunctional::new(parameters.clone());
             contributions.push(Box::new(att.clone()));
             entropy_scaling_contributions.push(Box::new(att.clone()));
-
 
             // Association
             if !parameters.association.assoc_comp.is_empty() {
@@ -118,7 +119,6 @@ impl PcSaftFunctional {
                 );
                 contributions.push(Box::new(assoc.clone()));
                 entropy_scaling_contributions.push(Box::new(assoc.clone()));
-
             }
         }
 
@@ -357,8 +357,7 @@ impl EntropyScalingFunctional<SIUnit> for PcSaftFunctional {
         let x = (density / &density.sum_axis(Axis_nd(0))).into_value()?; //.into_dimensionality().unwrap();
 
         //
-        let visc_ref = Zip::from(x.lanes(Axis_nd(0)))
-        .map_collect(|x| {
+        let visc_ref = Zip::from(x.lanes(Axis_nd(0))).map_collect(|x| {
             // Sum over `j` at every grid point
             let phi_i = phi
                 .outer_iter()
