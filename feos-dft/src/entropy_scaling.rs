@@ -14,8 +14,7 @@ use num_dual::{Dual64, DualVec};
 use quantity::si::*;
 use quantity::{QuantityArray, QuantityScalar};
 
-
-/// entropy scaling trait for functional contributions --> provide a different set of weight functions 
+/// entropy scaling trait for functional contributions --> provide a different set of weight functions
 pub trait EntropyScalingFunctionalContribution: FunctionalContribution {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64>;
 }
@@ -24,7 +23,7 @@ pub trait EntropyScalingFunctionalContribution: FunctionalContribution {
 impl<P: FMTProperties> EntropyScalingFunctionalContribution for FMTContribution<P> {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let r = self.properties.hs_diameter(temperature) * 0.5;
-        
+
         // compare to the actual weight functions for FMT
         WeightFunctionInfo::new(self.properties.component_index(), false)
             .add(
@@ -41,7 +40,6 @@ impl<P: FMTProperties> EntropyScalingFunctionalContribution for FMTContribution<
             )
     }
 }
-
 
 // Trait EntropyScalingFunctional for the viscosity calculation
 pub trait EntropyScalingFunctional<U: EosUnit>: HelmholtzEnergyFunctional
@@ -71,7 +69,7 @@ pub trait EntropyScalingFunctional<U: EosUnit>: HelmholtzEnergyFunctional
         D: Dimension,
         D::Larger: Dimension<Smaller = D>;
 
-        // add diffusion coefficient etc here 
+    // add diffusion coefficient etc here
 }
 
 /// implement Entropy SCaling for viscosity profiles in 1D (only for functionals which implement the trait EntropyScalingFunctional)
@@ -79,13 +77,13 @@ impl<F> DFTProfile<SIUnit, Ix1, F>
 where
     F: HelmholtzEnergyFunctional + EntropyScalingFunctional<SIUnit>,
 {
-    /// this function actually calcuates the viscosity profile and is called from python 
+    /// this function actually calcuates the viscosity profile and is called from python
     pub fn viscosity_profile_1d(&self) -> EosResult<SIArray<Ix1>> {
         let temperature_red = self
             .temperature
             .to_reduced(SIUnit::reference_temperature())?;
-        
-            let density_red = self.density.to_reduced(SIUnit::reference_density())?;
+
+        let density_red = self.density.to_reduced(SIUnit::reference_density())?;
 
         // initialize the convolver
         let weight_functions_dual: Vec<WeightFunctionInfo<Dual64>> = self
@@ -100,17 +98,15 @@ where
 
         //// Initialize entropy convolver
         // get the entropy scaling contributions which are defined in the implementation of EnropyScalingFunctional
-        let functional_contributions_entropy = self
-        .dft
-        .entropy_scaling_contributions();
-        
+        let functional_contributions_entropy = self.dft.entropy_scaling_contributions();
+
         // get the entropy scaling weight functions (defined in the contributions)
         let weight_functions_entropy: Vec<WeightFunctionInfo<f64>> =
             functional_contributions_entropy
                 .iter()
                 .map(|c| c.weight_functions_entropy(temperature_red))
                 .collect();
-        
+
         let convolver_entropy: Rc<dyn Convolver<f64, Ix1>> =
             ConvolverFFT::plan(&self.grid, &weight_functions_entropy, None);
 
@@ -129,7 +125,8 @@ where
         // the unit conversion is necessary to obtain the molar (and not per molecule) entropy
         let entropy_molar_contributions = self
             .dft
-            .entropy_density_contributions::<Ix1>( // calculates the entropy density
+            .entropy_density_contributions::<Ix1>(
+                // calculates the entropy density
                 temperature_red,
                 &density_red,
                 &convolver_dual,
@@ -192,8 +189,8 @@ where
         // .unwrap();
 
         // let mut viscosity_shear = Array::zeros(entropy_molar.raw_dim());
-        
-        // calculate the shear viscosity from the residual reduced entropy 
+
+        // calculate the shear viscosity from the residual reduced entropy
         let mut viscosity_shear = self
             .dft
             .viscosity_correlation::<Ix1>(&s_res, &self.density)
@@ -220,11 +217,9 @@ where
         let temperature_red = self
             .temperature
             .to_reduced(SIUnit::reference_temperature())?;
-        
-        let functional_contributions_entropy = self
-        .dft
-        .entropy_scaling_contributions();
-        
+
+        let functional_contributions_entropy = self.dft.entropy_scaling_contributions();
+
         let weight_functions_entropy: Vec<WeightFunctionInfo<f64>> =
             functional_contributions_entropy
                 .iter()
