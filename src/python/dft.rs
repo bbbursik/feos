@@ -24,7 +24,7 @@ use feos_dft::solvation::*;
 use feos_dft::*;
 use ndarray::{Array, Array1, Array2, Dimension};
 use numpy::convert::ToPyArray;
-use numpy::{PyArray1, PyArray2, PyArray4};
+use numpy::{PyArray1, PyArray2, PyArray3, PyArray4};
 #[cfg(feature = "gc_pcsaft")]
 use petgraph::graph::UnGraph;
 #[cfg(feature = "gc_pcsaft")]
