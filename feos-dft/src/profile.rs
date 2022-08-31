@@ -497,6 +497,25 @@ where
         )? * (SIUnit::reference_entropy() / SIUnit::reference_volume()))
     }
 
+    pub fn entropy_density_contributions(&self) -> EosResult<Vec<Array<f64, D>>> {
+        // initialize convolver
+        let t = self
+            .temperature
+            .to_reduced(SIUnit::reference_temperature())?;
+        let functional_contributions = self.dft.contributions();
+        let weight_functions: Vec<WeightFunctionInfo<Dual64>> = functional_contributions
+            .iter()
+            .map(|c| c.weight_functions(Dual64::from(t).derive()))
+            .collect();
+        let convolver = ConvolverFFT::plan(&self.grid, &weight_functions, None);
+
+        Ok(self.dft.entropy_density_contributions(
+            t,
+            &self.density.to_reduced(SIUnit::reference_density())?,
+            &convolver,
+        )?) // * (U::reference_entropy() / U::reference_volume()))
+    }
+
     pub fn entropy(&self, contributions: Contributions) -> EosResult<SINumber> {
         Ok(self.integrate(&self.entropy_density(contributions)?))
     }
