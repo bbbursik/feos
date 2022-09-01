@@ -497,6 +497,7 @@ where
         )? * (SIUnit::reference_entropy() / SIUnit::reference_volume()))
     }
 
+    // getter function for entropy_density of each contribution
     pub fn entropy_density_contributions(&self) -> EosResult<Vec<Array<f64, D>>> {
         // initialize convolver
         let t = self
@@ -516,7 +517,7 @@ where
         )?) // * (U::reference_entropy() / U::reference_volume()))
     }
 
-    pub fn entropy(&self, contributions: Contributions) -> EosResult<SINumber> {
+    pub fn entropy(&self, contributions: Contributions) -> EosResult<QuantityScalar<U>> {
         Ok(self.integrate(&self.entropy_density(contributions)?))
     }
 

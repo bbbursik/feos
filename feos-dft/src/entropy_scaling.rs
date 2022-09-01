@@ -77,6 +77,13 @@ impl<F> DFTProfile<SIUnit, Ix1, F>
 where
     F: HelmholtzEnergyFunctional + EntropyScalingFunctional<SIUnit>,
 {
+    // getter function for viscosity reference 
+    pub fn viscosity_reference_1d(&self) -> EosResult<SIArray<Ix1>> {
+        self
+        .dft
+        .viscosity_reference::<Ix1>(&self.density, self.temperature)
+    }
+
     /// this function actually calcuates the viscosity profile and is called from python
     pub fn viscosity_profile_1d(&self) -> EosResult<SIArray<Ix1>> {
         let temperature_red = self
