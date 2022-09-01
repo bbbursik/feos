@@ -225,6 +225,16 @@ macro_rules! impl_1d_profile {
             }
 
             #[getter]
+            fn get_viscosity_reference(
+                &mut self,
+                // contributions: PyContributions,
+            ) -> PyResult<PySIArray1> {
+                Ok(PySIArray1::from(
+                    self.0.profile.viscosity_reference_1d()?,
+                ))
+            }
+
+            #[getter]
             fn get_weighted_densities_entropy<'py>(
                 &self,
                 py: Python<'py>,
