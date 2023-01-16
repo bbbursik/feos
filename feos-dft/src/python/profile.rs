@@ -109,6 +109,26 @@ macro_rules! impl_profile {
                 Ok(self.0.profile.functional_derivative()?.view().to_pyarray(py))
             }
 
+            #[getter]
+            fn get_partial_derivative<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr2<f64>>> {
+                let dphi_drho = self.0.profile.partial_derivatives()?;
+                Ok(dphi_drho.into_iter().map(|x| x.view().to_pyarray(py)).collect())
+            }
+
+
+            #[getter]
+            fn get_first_second_partial_derivative<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<(Vec<&'py $arr2<f64>>, Vec<&'py $arr3<f64>>)> {
+                let (fpd,spd) = self.0.profile.first_second_partial_derivatives()?;
+                Ok((fpd.into_iter().map(|x| x.view().to_pyarray(py)).collect(),
+                spd.into_iter().map(|x| x.view().to_pyarray(py)).collect()))
+            }
+
             /// Calculate the entropy density of the inhomogeneous system.
             ///
             /// Parameters
