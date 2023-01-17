@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! impl_profile {
-    ($struct:ident, $arr:ident, $arr2:ident, $si_arr:ident, $si_arr2:ident, $py_arr2:ident, [$([$ind:expr, $ax:ident]),+]) => {
+    ($struct:ident, $arr:ident, $arr2:ident, $arr3:ident, $si_arr:ident, $si_arr2:ident, $py_arr2:ident, [$([$ind:expr, $ax:ident]),+]) => {
         #[pymethods]
         impl $struct {
             /// Calculate the residual for the given profile.
@@ -209,6 +209,7 @@ macro_rules! impl_1d_profile {
             $struct,
             PyArray1,
             PyArray2,
+            PyArray3,
             PySIArray1,
             PySIArray2,
             PyArray2,
@@ -224,6 +225,7 @@ macro_rules! impl_2d_profile {
             $struct,
             PyArray2,
             PyArray3,
+            PyArray4
             PySIArray2,
             PySIArray3,
             PyArray3,
@@ -248,6 +250,7 @@ macro_rules! impl_3d_profile {
             $struct,
             PyArray3,
             PyArray4,
+            PyArray5,
             PySIArray3,
             PySIArray4,
             PyArray4,
