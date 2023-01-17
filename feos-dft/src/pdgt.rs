@@ -11,6 +11,9 @@ impl WeightFunctionInfo<HyperDual64> {
     fn pdgt_weight_constants(&self) -> (Array2<f64>, Array2<f64>, Array2<f64>) {
         let k = HyperDual64::from(0.0).derive1().derive2();
         let w = self.weight_constants(k, 1);
+        println!("w0: {}", w.mapv(|w| w.re));
+        println!("w1: {}", w.mapv(|w| -w.eps1[0]));
+        println!("w2: {}", w.mapv(|w| -0.5 * w.eps1eps2[(0, 0)]));
         (
             w.mapv(|w| w.re),
             w.mapv(|w| -w.eps1[0]),
