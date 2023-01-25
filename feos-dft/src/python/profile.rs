@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! impl_profile {
-    ($struct:ident, $arr:ident, $arr2:ident, $arr3:ident, $si_arr:ident, $si_arr2:ident, $py_arr2:ident, [$([$ind:expr, $ax:ident]),+]) => {
+    ($struct:ident, $arr:ident, $arr2:ident, $arr3:ident,$arr4:ident, $si_arr:ident, $si_arr2:ident, $py_arr2:ident, [$([$ind:expr, $ax:ident]),+]) => {
         #[pymethods]
         impl $struct {
             /// Calculate the residual for the given profile.
@@ -129,6 +129,17 @@ macro_rules! impl_profile {
                 spd.into_iter().map(|x| x.view().to_pyarray(py)).collect()))
             }
 
+            #[getter]
+            fn get_first_second_third_partial_derivative<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<(Vec<&'py $arr2<f64>>, Vec<&'py $arr3<f64>>, Vec<&'py $arr4<f64>>)> {
+                let (fpd,spd, tpd) = self.0.profile.first_second_third_partial_derivatives()?;
+                Ok((fpd.into_iter().map(|x| x.view().to_pyarray(py)).collect(),
+                spd.into_iter().map(|x| x.view().to_pyarray(py)).collect(), 
+                tpd.into_iter().map(|x| x.view().to_pyarray(py)).collect()))
+            }
+
             /// Calculate the entropy density of the inhomogeneous system.
             ///
             /// Parameters
@@ -210,6 +221,7 @@ macro_rules! impl_1d_profile {
             PyArray1,
             PyArray2,
             PyArray3,
+            PyArray4,
             PySIArray1,
             PySIArray2,
             PyArray2,
@@ -225,7 +237,8 @@ macro_rules! impl_2d_profile {
             $struct,
             PyArray2,
             PyArray3,
-            PyArray4
+            PyArray4,
+            PyArray5,
             PySIArray2,
             PySIArray3,
             PyArray3,
@@ -251,6 +264,7 @@ macro_rules! impl_3d_profile {
             PyArray3,
             PyArray4,
             PyArray5,
+            PyArray6,
             PySIArray3,
             PySIArray4,
             PyArray4,

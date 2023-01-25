@@ -470,10 +470,10 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             )?;
             partial_derivatives.push(pd);
         }
-        Ok((partial_derivatives))
+        Ok(partial_derivatives)
     }
 
-    ///////////////////////////// calculate the first partial derivatives (for getter to python)
+    ///////////////////////////// calculate the second partial derivatives (for getter to python)
     #[allow(clippy::type_complexity)]
     pub fn second_partial_derivatives<D>(
         &self,
@@ -512,6 +512,55 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             second_partial_derivatives.push(pd2);
         }
         Ok((partial_derivatives, second_partial_derivatives))
+    }
+
+
+
+    ///////////////////////////// calculate the third partial derivatives (for getter to python)
+    #[allow(clippy::type_complexity)]
+    pub fn third_partial_derivatives<D>(
+        &self,
+        temperature: f64,
+        density: &Array<f64, D::Larger>,
+        convolver: &Arc<dyn Convolver<f64, D>>,
+    ) -> EosResult<(
+        Vec<Array<f64, D::Larger>>,
+        Vec<Array<f64, <<D as Dimension>::Larger as Dimension>::Larger>>,
+        Vec<Array<f64, <<<D as Dimension>::Larger as Dimension>::Larger as Dimension>::Larger>>,
+    )>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        let weighted_densities = convolver.weighted_densities(density);
+        let contributions = self.contributions();
+        let mut partial_derivatives = Vec::with_capacity(contributions.len());
+        let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
+        let mut third_partial_derivatives = Vec::with_capacity(contributions.len());
+        // let mut helmholtz_energy_density = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+        for (c, wd) in contributions.iter().zip(weighted_densities) {
+            let nwd = wd.shape()[0];
+            let ngrid = wd.len() / nwd;
+            let mut phi = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+            let mut pd = Array::zeros(wd.raw_dim());
+            let dim = wd.shape();
+            let dim2: Vec<_> = std::iter::once(&nwd).chain(dim).cloned().collect();
+            let mut pd2 = Array::zeros(dim2).into_dimensionality().unwrap();
+            let dim3: Vec<_> = std::iter::once(&nwd).chain(std::iter::once(&nwd)).chain(dim).cloned().collect();
+            let mut pd3 = Array::zeros(dim3).into_dimensionality().unwrap();
+            c.third_partial_derivatives(
+                temperature,
+                wd.view().into_shape((nwd, ngrid)).unwrap(),
+                phi.view_mut().into_shape(ngrid).unwrap(),
+                pd.view_mut().into_shape((nwd, ngrid)).unwrap(),
+                pd2.view_mut().into_shape((nwd, nwd, ngrid)).unwrap(),
+                pd3.view_mut().into_shape((nwd, nwd, nwd, ngrid)).unwrap(),
+            )?;
+            partial_derivatives.push(pd);
+            second_partial_derivatives.push(pd2);
+            third_partial_derivatives.push(pd3);
+        }
+        Ok((partial_derivatives, second_partial_derivatives, third_partial_derivatives))
     }
 
     /// Calculate the bond integrals $I_{\alpha\alpha'}(\mathbf{r})$

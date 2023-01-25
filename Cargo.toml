@@ -23,7 +23,6 @@ crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 quantity = "0.6"
-# num-dual = [dependencies]
 num-dual = { git = "https://github.com/bbbursik/num-dual", branch = "hyperdual2" }
 feos-core = { version = "0.3", path = "feos-core" }
 feos-dft = { version = "0.3", path = "feos-dft", optional = true }

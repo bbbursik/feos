@@ -338,8 +338,8 @@ where
 
     pub fn partial_derivatives(&self) -> EosResult<Vec<Array<f64, D::Larger>>> {
         let partial_derivative = self.dft.partial_derivatives(
-            self.temperature.to_reduced(U::reference_temperature())?,
-            &self.density.to_reduced(U::reference_density())?,
+            self.temperature.to_reduced(SIUnit::reference_temperature())?,
+            &self.density.to_reduced(SIUnit::reference_density())?,
             &self.convolver,
         )?;
         Ok(partial_derivative)
@@ -353,36 +353,29 @@ where
     )> {
         let (first_partial_derivative, second_partial_derivative) =
             self.dft.second_partial_derivatives(
-                self.temperature.to_reduced(U::reference_temperature())?,
-                &self.density.to_reduced(U::reference_density())?,
+                self.temperature.to_reduced(SIUnit::reference_temperature())?,
+                &self.density.to_reduced(SIUnit::reference_density())?,
                 &self.convolver,
             )?;
         Ok((first_partial_derivative, second_partial_derivative))
     }
 
-    pub fn partial_derivatives(&self) -> EosResult<Vec<Array<f64, D::Larger>>> {
-        let partial_derivative = self.dft.partial_derivatives(
-            self.temperature.to_reduced(U::reference_temperature())?,
-            &self.density.to_reduced(U::reference_density())?,
-            &self.convolver,
-        )?;
-        Ok(partial_derivative)
-    }
-
-    pub fn first_second_partial_derivatives(
+    pub fn first_second_third_partial_derivatives(
         &self,
     ) -> EosResult<(
         Vec<Array<f64, D::Larger>>,
         Vec<Array<f64, <<D as Dimension>::Larger as Dimension>::Larger>>,
+        Vec<Array<f64, <<<D as Dimension>::Larger as Dimension>::Larger as Dimension>::Larger>>,
     )> {
-        let (first_partial_derivative, second_partial_derivative) =
-            self.dft.second_partial_derivatives(
-                self.temperature.to_reduced(U::reference_temperature())?,
-                &self.density.to_reduced(U::reference_density())?,
+        let (first_partial_derivative, second_partial_derivative, third_partial_derivative) =
+            self.dft.third_partial_derivatives(
+                self.temperature.to_reduced(SIUnit::reference_temperature())?,
+                &self.density.to_reduced(SIUnit::reference_density())?,
                 &self.convolver,
             )?;
-        Ok((first_partial_derivative, second_partial_derivative))
+        Ok((first_partial_derivative, second_partial_derivative, third_partial_derivative))
     }
+
 
     #[allow(clippy::type_complexity)]
     pub fn residual(&self, log: bool) -> EosResult<(Array<f64, D::Larger>, Array1<f64>, f64)> {
