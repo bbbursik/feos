@@ -18,8 +18,9 @@ features = [ "rayon" ]
 
 [dependencies]
 quantity = { version = "0.6", features = ["linalg"] }
-num-dual = "0.6"
+# num-dual = "0.6"
 feos-core = { version = "0.3", path = "../feos-core" }
+num-dual = { git = "https://github.com/bbbursik/num-dual", branch = "hyperdual2" }
 ndarray = "0.15"
 rustdct = "0.7"
 rustfft = "6.0"

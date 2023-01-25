@@ -19,7 +19,9 @@ features = [ "rayon" ]
 
 [dependencies]
 quantity = "0.6"
-num-dual = { version = "0.6", features = ["linalg"] }
+# num-dual = { version = "0.6", features = ["linalg"] }
+num-dual = { git = "https://github.com/bbbursik/num-dual", branch = "hyperdual2" , features = ["linalg"]}
+
 ndarray = { version = "0.15", features = ["serde"] }
 num-traits = "0.2"
 thiserror = "1.0"

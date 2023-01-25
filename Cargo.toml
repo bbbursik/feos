@@ -22,8 +22,14 @@ members = ["feos-core", "feos-dft", "feos-derive"]
 crate-type = ["rlib", "cdylib"]
 
 [dependencies]
+<<<<<<< HEAD
 quantity = "0.6"
 num-dual = "0.6"
+=======
+quantity = "0.5"
+# num-dual = [dependencies]
+num-dual = { git = "https://github.com/bbbursik/num-dual", branch = "hyperdual2" }
+>>>>>>> changed dependency on numdual github
 feos-core = { version = "0.3", path = "feos-core" }
 feos-dft = { version = "0.3", path = "feos-dft", optional = true }
 feos-derive = { version = "0.1", path = "feos-derive" }
