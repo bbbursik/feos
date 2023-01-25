@@ -36,6 +36,7 @@ impl_helmholtz_energy!(f64);
 impl_helmholtz_energy!(Dual64);
 impl_helmholtz_energy!(Dual<DualVec64<3>, f64>);
 impl_helmholtz_energy!(HyperDual64);
+impl_helmholtz_energy!(HyperDual2_64);
 impl_helmholtz_energy!(Dual2_64);
 impl_helmholtz_energy!(Dual3_64);
 impl_helmholtz_energy!(HyperDual<Dual64, f64>);
@@ -163,6 +164,7 @@ impl<T> FunctionalContribution for T where
         + FunctionalContributionDual<Dual64>
         + FunctionalContributionDual<Dual<DualVec64<3>, f64>>
         + FunctionalContributionDual<HyperDual64>
+        + FunctionalContributionDual<HyperDual2_64>
         + FunctionalContributionDual<Dual2_64>
         + FunctionalContributionDual<Dual3_64>
         + FunctionalContributionDual<HyperDual<Dual64, f64>>
