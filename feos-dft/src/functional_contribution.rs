@@ -193,7 +193,7 @@ pub trait FunctionalContribution:
                     // assign the current p to the appropriate third partial derivatives
                     self.assign_third_partial_derivatives(i, j, k, third_partial_derivative.view_mut(), p)?;
                     
-                    wd.index_axis_mut(Axis(0), j)
+                    wd.index_axis_mut(Axis(0), k)
                         .map_inplace(|x| x.eps3 = 0.0);
                 }
                 
@@ -225,7 +225,7 @@ pub trait FunctionalContribution:
         i: usize,
         j: usize, 
         k: usize, 
-        mut third_partial_derivative: ArrayViewMut4<f64>,
+        third_partial_derivative: ArrayViewMut4<f64>,
         p: Array1<f64>,
     ) -> EosResult<()> {
         let mut indizes = vec![(i,j,k)];
@@ -244,7 +244,7 @@ pub trait FunctionalContribution:
             indizes.push((i,k,j));
             indizes.push((j,i,k));
         }  
-        if (i == k) & (j == k) {
+        if (i != k) & (j != k) & (i != j) {
             indizes.push((i,k,j));
             indizes.push((j,i,k));
             indizes.push((j,k,i));
