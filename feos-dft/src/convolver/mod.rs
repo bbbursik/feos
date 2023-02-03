@@ -14,6 +14,9 @@ mod transform;
 pub use periodic_convolver::PeriodicConvolver;
 use transform::*;
 
+// use ndarray_npy::write_npy;
+
+
 /// Trait for numerical convolutions for DFT.
 ///
 /// Covers calculation of weighted densities & functional derivatives
@@ -35,6 +38,120 @@ pub trait Convolver<T, D: Dimension>: Send + Sync {
         partial_derivatives: &[Array<T, D::Larger>],
     ) -> Array<T, D::Larger>;
 }
+
+// This is the gradient convolver for the local DFT approximation. It uses a second order Taylor Expansion for the weighted densities and a second order Taylor expansion of the partial derivatives of the Helmholtz energy density.
+pub struct GradConvolver<T, D: Dimension> {
+    grid: Array<T, D>,
+    weight_functions: Vec<WeightFunctionInfo<T>>,
+    weight_constants: Vec<Array<HyperDual64, D::Larger>>,
+}
+
+// This implementation has to be in Ix1 (1D) since the gradient would otherwise have to be calculated generally in 3D
+impl<T> GradConvolver<T, Ix1>
+where
+    T: DctNum + DualNum<f64> + ScalarOperand,
+{
+    pub fn new(
+        grid: Array<T, Ix1>,
+        weight_functions: Vec<WeightFunctionInfo<T>>, //&[WeightFunctionInfo<T>],
+        weight_constants: Vec<Array<HyperDual64, Ix2>>,
+    ) -> Arc<dyn Convolver<T, Ix1>> {
+        Arc::new(Self {
+            grid,
+            weight_functions,
+            weight_constants,
+        })
+    }
+
+    pub fn gradient(&self, f: &Array<T, Ix2>, dx: T) -> Array<T, Ix2> {
+        let grad = Array::from_shape_fn(f.raw_dim(), |(c, i)| {
+            let width: usize = 1;
+            let d = if i as isize - width as isize <= 0 {
+                (f[(c, i + width)] - f[(c, i)]) * 0.0 // Left value --> where from?
+            } else if i + width >= f.shape()[1] - 1 {
+                (f[(c, i)] - f[(c, i - width)]) * 0.0
+            } else {
+                f[(c, i + width)] - f[(c, i - width)]
+                // (f[(c, i + 1)] - f[(c, i)]) * 2.0
+            };
+            d / (dx * 2.0 * width as f64)
+        });
+        grad
+    }
+
+    
+    pub fn laplace(&self, f: &Array<T, Ix2>, dx: T) -> Array<T, Ix2> {
+        let lapl = Array::from_shape_fn(f.raw_dim(), |(c, i)| {
+            let width: usize = 1;
+            let width_f64 = width as f64;
+            let d = if i as isize - width as isize <= 0 {
+                (f[(c, i + width * 2)] - f[(c, i + width)] * 2.0 + f[(c, i)]) // * 0.0
+            } else if i + width >= f.shape()[1] - 1 {
+                (f[(c, i)] - f[(c, i - width)] * 2.0 + f[(c, i - width * 2)]) // * 0.0
+            } else {
+                (f[(c, i + width)] - f[(c, i)] * 2.0 + f[(c, i - width)])
+            };
+
+            d / (dx * dx) / (width_f64 * width_f64)
+        });
+        lapl
+    }
+
+
+}
+
+// Implement the convolver Trait
+impl<T> Convolver<T, Ix1> for GradConvolver<T, Ix1>
+where
+    T: DctNum + DualNum<f64> + ScalarOperand, //last one just for writing into file for debugging
+{
+    fn convolve(
+        &self,
+        profile: Array<T, Ix1>,
+        weight_function: &WeightFunction<T>,
+    ) -> Array<T, Ix1> {
+        unimplemented!();
+    }
+
+    fn weighted_densities(&self, density: &Array<T, Ix2>) -> Vec<Array<T, Ix2>> {
+        let dx = self.grid[1] - self.grid[0];
+
+        let gradient = self.gradient(density, dx);
+        let laplace = self.laplace(density, dx);
+
+        let k0 = HyperDual64::from(0.0).derive1().derive2();
+        let mut weighted_densities_vec = Vec::with_capacity(self.weight_functions.len());
+
+        let mut j = 0;
+        for (wf, wc) in self
+            .weight_functions
+            .iter()
+            .zip(self.weight_constants.iter())
+        {
+            let segments = wf.component_index.len();
+            let wf_hd = WeightFunctionInfo::from(HyperDual64::from(wf)); //brauche die wf mit T als Hyperdual für die weight constants, aber es kommt aus Interface als f64 --> übergeben aus Interface
+            let w = wf.weight_constants(k0, 1); //can rewrite this with the corresponding function for the weight constants (i.e. scalar_weigth_const)
+            let w0 = wc.mapv(|w| w.re);
+            let w1 = wc.mapv(|w| -w.eps1[0]);
+            let w2 = wc.mapv(|w| -0.5 * w.eps1eps2[(0, 0)]);
+
+
+            // hier weiter einfach auffüllen und ggf anpassen mit dem Code aus ~/old_feos/feos/feos-dft/convolver/mod.rs
+            // man kann die wieghted densities für scalar und Vektor jeweils zusammenfassen da die ws ja 0 sind
+          }
+
+    fn functional_derivative(
+        &self,
+        partial_derivatives: &[Array<T, Ix2>],
+        // second_partial_derivatives: &[Array<T, Ix3>], //only for 2nd variant of functional derivative
+        // weighted_densities: &[Array<T, Ix2>],
+    ) -> Array<T, Ix2> {
+        unimplemented!();
+    }
+}
+
+
+
 
 pub(crate) struct BulkConvolver<T> {
     weight_constants: Vec<Array2<T>>,
