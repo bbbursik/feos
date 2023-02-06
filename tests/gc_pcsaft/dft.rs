@@ -193,7 +193,8 @@ fn test_dft() -> Result<(), Box<dyn Error>> {
     let points = 2048;
     let tc = State::critical_point(&func, None, None, Default::default())?.temperature;
     let vle = PhaseEquilibrium::pure(&func, t, None, Default::default())?;
-    let profile = PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(None)?;
+    let profile =
+        PlanarInterface::from_tanh(&vle, points, w, tc, false, false, false)?.solve(None)?;
     println!(
         "hetero {} {} {}",
         profile.surface_tension.unwrap(),
@@ -238,8 +239,8 @@ fn test_dft_assoc() -> Result<(), Box<dyn Error>> {
     let w = 100.0 * ANGSTROM;
     let points = 4096;
     let vle = PhaseEquilibrium::pure(&func, t, None, Default::default())?;
-    let profile =
-        PlanarInterface::from_tanh(&vle, points, w, 600.0 * KELVIN, false)?.solve(None)?;
+    let profile = PlanarInterface::from_tanh(&vle, points, w, 600.0 * KELVIN, false, false, false)?
+        .solve(None)?;
     println!(
         "hetero {} {} {}",
         profile.surface_tension.unwrap(),
@@ -289,6 +290,6 @@ fn test_dft_newton() -> Result<(), Box<dyn Error>> {
     let solver = DFTSolver::new(Some(Verbosity::Iter))
         .picard_iteration(None, Some(10), None, None)
         .newton(None, None, None, None);
-    PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(Some(&solver))?;
+    PlanarInterface::from_tanh(&vle, points, w, tc, false, false, false)?.solve(Some(&solver))?;
     Ok(())
 }

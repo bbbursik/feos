@@ -60,10 +60,18 @@ impl<F: HelmholtzEnergyFunctional + PairPotential> PairCorrelation<F> {
         // initialize convolver
         let grid = Grid::Spherical(axis);
         let weight_functions = dft.weight_functions(t);
-        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_wd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_fd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
 
         Ok(Self {
-            profile: DFTProfile::new(grid, convolver, bulk, Some(external_potential), None)?,
+            profile: DFTProfile::new(
+                grid,
+                convolver_wd,
+                convolver_fd,
+                bulk,
+                Some(external_potential),
+                None,
+            )?,
             pair_correlation_function: None,
             self_solvation_free_energy: None,
             structure_factor: None,

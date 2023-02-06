@@ -99,7 +99,8 @@ impl<D: Dimension, F: HelmholtzEnergyFunctional> DFTSpecification<D, F> for DFTS
 /// A one-, two-, or three-dimensional density profile.
 pub struct DFTProfile<D: Dimension, F> {
     pub grid: Grid,
-    pub convolver: Arc<dyn Convolver<f64, D>>,
+    pub convolver_wd: Arc<dyn Convolver<f64, D>>,
+    pub convolver_fd: Arc<dyn Convolver<f64, D>>,
     pub dft: Arc<DFT<F>>,
     pub temperature: SINumber,
     pub density: SIArray<D::Larger>,
@@ -170,7 +171,8 @@ where
     /// after this call if something else is required.
     pub fn new(
         grid: Grid,
-        convolver: Arc<dyn Convolver<f64, D>>,
+        convolver_wd: Arc<dyn Convolver<f64, D>>,
+        convolver_fd: Arc<dyn Convolver<f64, D>>,
         bulk: &State<DFT<F>>,
         external_potential: Option<Array<f64, D::Larger>>,
         density: Option<&SIArray<D::Larger>>,
@@ -194,7 +196,7 @@ where
                 .temperature
                 .to_reduced(SIUnit::reference_temperature())?;
             let exp_dfdrho = (-&external_potential).mapv(f64::exp);
-            let mut bonds = dft.bond_integrals(t, &exp_dfdrho, &convolver);
+            let mut bonds = dft.bond_integrals(t, &exp_dfdrho, &convolver_fd);
             bonds *= &exp_dfdrho;
             let mut density = Array::zeros(external_potential.raw_dim());
             let bulk_density = bulk
@@ -210,7 +212,8 @@ where
 
         Ok(Self {
             grid,
-            convolver,
+            convolver_wd,
+            convolver_fd,
             dft: bulk.eos.clone(),
             temperature: bulk.temperature,
             density,
@@ -301,7 +304,8 @@ impl<D: Dimension, F> Clone for DFTProfile<D, F> {
     fn clone(&self) -> Self {
         Self {
             grid: self.grid.clone(),
-            convolver: self.convolver.clone(),
+            convolver_wd: self.convolver_wd.clone(),
+            convolver_fd: self.convolver_fd.clone(),
             dft: self.dft.clone(),
             temperature: self.temperature,
             density: self.density.clone(),
@@ -322,7 +326,7 @@ where
 {
     pub fn weighted_densities(&self) -> EosResult<Vec<Array<f64, D::Larger>>> {
         Ok(self
-            .convolver
+            .convolver_wd
             .weighted_densities(&self.density.to_reduced(SIUnit::reference_density())?))
     }
 
@@ -331,16 +335,18 @@ where
             self.temperature
                 .to_reduced(SIUnit::reference_temperature())?,
             &self.density.to_reduced(SIUnit::reference_density())?,
-            &self.convolver,
+            &self.convolver_wd,
+            &self.convolver_fd,
         )?;
         Ok(dfdrho)
     }
 
     pub fn partial_derivatives(&self) -> EosResult<Vec<Array<f64, D::Larger>>> {
         let partial_derivative = self.dft.partial_derivatives(
-            self.temperature.to_reduced(SIUnit::reference_temperature())?,
+            self.temperature
+                .to_reduced(SIUnit::reference_temperature())?,
             &self.density.to_reduced(SIUnit::reference_density())?,
-            &self.convolver,
+            &self.convolver_wd,
         )?;
         Ok(partial_derivative)
     }
@@ -353,9 +359,10 @@ where
     )> {
         let (first_partial_derivative, second_partial_derivative) =
             self.dft.second_partial_derivatives(
-                self.temperature.to_reduced(SIUnit::reference_temperature())?,
+                self.temperature
+                    .to_reduced(SIUnit::reference_temperature())?,
                 &self.density.to_reduced(SIUnit::reference_density())?,
-                &self.convolver,
+                &self.convolver_wd,
             )?;
         Ok((first_partial_derivative, second_partial_derivative))
     }
@@ -369,13 +376,17 @@ where
     )> {
         let (first_partial_derivative, second_partial_derivative, third_partial_derivative) =
             self.dft.third_partial_derivatives(
-                self.temperature.to_reduced(SIUnit::reference_temperature())?,
+                self.temperature
+                    .to_reduced(SIUnit::reference_temperature())?,
                 &self.density.to_reduced(SIUnit::reference_density())?,
-                &self.convolver,
+                &self.convolver_wd,
             )?;
-        Ok((first_partial_derivative, second_partial_derivative, third_partial_derivative))
+        Ok((
+            first_partial_derivative,
+            second_partial_derivative,
+            third_partial_derivative,
+        ))
     }
-
 
     #[allow(clippy::type_complexity)]
     pub fn residual(&self, log: bool) -> EosResult<(Array<f64, D::Larger>, Array1<f64>, f64)> {
@@ -411,18 +422,24 @@ where
             .to_reduced(SIUnit::reference_temperature())?;
 
         // calculate intrinsic functional derivative
-        let (_, mut dfdrho) =
-            self.dft
-                .functional_derivative(temperature, density, &self.convolver)?;
+        let (_, mut dfdrho) = self.dft.functional_derivative(
+            temperature,
+            density,
+            &self.convolver_wd,
+            &self.convolver_fd,
+        )?;
 
         // calculate total functional derivative
         dfdrho += &self.external_potential;
 
         // calculate bulk functional derivative
         let bulk_convolver = BulkConvolver::new(self.dft.weight_functions(temperature));
-        let (_, dfdrho_bulk) =
-            self.dft
-                .functional_derivative(temperature, bulk_density, &bulk_convolver)?;
+        let (_, dfdrho_bulk) = self.dft.functional_derivative(
+            temperature,
+            bulk_density,
+            &bulk_convolver,
+            &bulk_convolver,
+        )?;
         dfdrho
             .outer_iter_mut()
             .zip(dfdrho_bulk.into_iter())
@@ -436,7 +453,7 @@ where
         let exp_dfdrho = dfdrho.mapv(|x| (-x).exp());
         let bonds = self
             .dft
-            .bond_integrals(temperature, &exp_dfdrho, &self.convolver);
+            .bond_integrals(temperature, &exp_dfdrho, &self.convolver_fd);
         let mut rho_projected = &exp_dfdrho * bonds;
 
         // multiply bulk density
@@ -543,8 +560,12 @@ where
     }
 
     pub fn grand_potential_density(&self) -> EosResult<SIArray<D>> {
-        self.dft
-            .grand_potential_density(self.temperature, &self.density, &self.convolver)
+        self.dft.grand_potential_density(
+            self.temperature,
+            &self.density,
+            &self.convolver_wd,
+            &self.convolver_fd,
+        )
     }
 
     pub fn grand_potential(&self) -> EosResult<SINumber> {

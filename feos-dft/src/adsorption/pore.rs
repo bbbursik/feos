@@ -176,10 +176,18 @@ impl PoreSpecification<Ix1> for Pore1D {
             .temperature
             .to_reduced(SIUnit::reference_temperature())?;
         let weight_functions = dft.weight_functions(t);
-        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_wd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_fd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
 
         Ok(PoreProfile {
-            profile: DFTProfile::new(grid, convolver, bulk, Some(external_potential), density)?,
+            profile: DFTProfile::new(
+                grid,
+                convolver_wd,
+                convolver_fd,
+                bulk,
+                Some(external_potential),
+                density,
+            )?,
             grand_potential: None,
             interfacial_tension: None,
         })

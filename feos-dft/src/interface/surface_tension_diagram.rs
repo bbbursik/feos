@@ -34,6 +34,8 @@ impl<F: HelmholtzEnergyFunctional> SurfaceTensionDiagram<F> {
                     100.0 * SIUnit::reference_length(),
                     500.0 * SIUnit::reference_temperature(),
                     fix_equimolar_surface.unwrap_or(false),
+                    false,
+                    false,
                 )
             } else {
                 // initialize with pDGT for single segments and tanh for mixtures and segment DFT
@@ -46,6 +48,8 @@ impl<F: HelmholtzEnergyFunctional> SurfaceTensionDiagram<F> {
                         l_grid.unwrap_or(100.0 * SIUnit::reference_length()),
                         critical_temperature.unwrap_or(500.0 * SIUnit::reference_temperature()),
                         fix_equimolar_surface.unwrap_or(false),
+                        false,
+                        false,
                     )
                 }
                 .map(|mut profile| {

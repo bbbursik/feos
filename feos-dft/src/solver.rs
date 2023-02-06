@@ -555,7 +555,7 @@ where
             .temperature
             .to_reduced(SIUnit::reference_temperature())?;
         let contributions = self.dft.contributions();
-        let weighted_densities = self.convolver.weighted_densities(density);
+        let weighted_densities = self.convolver_wd.weighted_densities(density);
         let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
         for (c, wd) in contributions.iter().zip(&weighted_densities) {
             let nwd = wd.shape()[0];
@@ -582,7 +582,7 @@ where
         delta_density: &Array<f64, D::Larger>,
         second_partial_derivatives: &[Array<f64, <D::Larger as Dimension>::Larger>],
     ) -> Array<f64, D::Larger> {
-        let delta_weighted_densities = self.convolver.weighted_densities(delta_density);
+        let delta_weighted_densities = self.convolver_wd.weighted_densities(delta_density);
         let delta_partial_derivatives: Vec<_> = second_partial_derivatives
             .iter()
             .zip(delta_weighted_densities)
@@ -603,8 +603,8 @@ where
                 delta_partial_derivatives
             })
             .collect();
-        self.convolver
-            .functional_derivative(&delta_partial_derivatives)
+        self.convolver_fd
+            .functional_derivative(&delta_partial_derivatives, None, None, None)
     }
 
     fn delta_bond_integrals(
@@ -676,12 +676,12 @@ where
                             |acc: Array<f64, D>, delta_e| acc + delta_e.weight().as_ref().unwrap(),
                         ) * &i0;
                         i1 = Some(
-                            self.convolver
+                            self.convolver_fd
                                 .convolve(i0, &bond_weight_functions[edge.id()]),
                         );
                         delta_i1 = Some(
                             (self
-                                .convolver
+                                .convolver_fd
                                 .convolve(delta_i0, &bond_weight_functions[edge.id()])
                                 / i1.as_ref().unwrap())
                             .mapv(|x| if x.is_finite() { x } else { 0.0 }),

@@ -204,7 +204,8 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         &self,
         temperature: SINumber,
         density: &SIArray<D::Larger>,
-        convolver: &Arc<dyn Convolver<f64, D>>,
+        convolver_wd: &Arc<dyn Convolver<f64, D>>,
+        convolver_fd: &Arc<dyn Convolver<f64, D>>,
     ) -> EosResult<SIArray<D>>
     where
         D: Dimension,
@@ -213,7 +214,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         // Calculate residual Helmholtz energy density and functional derivative
         let t = temperature.to_reduced(SIUnit::reference_temperature())?;
         let rho = density.to_reduced(SIUnit::reference_density())?;
-        let (mut f, dfdrho) = self.functional_derivative(t, &rho, convolver)?;
+        let (mut f, dfdrho) = self.functional_derivative(t, &rho, convolver_wd, convolver_fd)?;
 
         // Calculate the grand potential density
         for ((rho, dfdrho), &m) in rho
@@ -411,13 +412,14 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         &self,
         temperature: f64,
         density: &Array<f64, D::Larger>,
-        convolver: &Arc<dyn Convolver<f64, D>>,
+        convolver_wd: &Arc<dyn Convolver<f64, D>>,
+        convolver_fd: &Arc<dyn Convolver<f64, D>>,
     ) -> EosResult<(Array<f64, D>, Array<f64, D::Larger>)>
     where
         D: Dimension,
         D::Larger: Dimension<Smaller = D>,
     {
-        let weighted_densities = convolver.weighted_densities(density);
+        let weighted_densities = convolver_wd.weighted_densities(density);
         let contributions = self.contributions();
         let mut partial_derivatives = Vec::with_capacity(contributions.len());
         let mut helmholtz_energy_density = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
@@ -437,7 +439,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         }
         Ok((
             helmholtz_energy_density,
-            convolver.functional_derivative(&partial_derivatives),
+            convolver_fd.functional_derivative(&partial_derivatives, None, None, None),
         ))
     }
 
@@ -479,7 +481,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         &self,
         temperature: f64,
         density: &Array<f64, D::Larger>,
-        convolver: &Arc<dyn Convolver<f64, D>>,
+        convolver_wd: &Arc<dyn Convolver<f64, D>>,
     ) -> EosResult<(
         Vec<Array<f64, D::Larger>>,
         Vec<Array<f64, <<D as Dimension>::Larger as Dimension>::Larger>>,
@@ -488,7 +490,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         D: Dimension,
         D::Larger: Dimension<Smaller = D>,
     {
-        let weighted_densities = convolver.weighted_densities(density);
+        let weighted_densities = convolver_wd.weighted_densities(density);
         let contributions = self.contributions();
         let mut partial_derivatives = Vec::with_capacity(contributions.len());
         let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
@@ -514,15 +516,13 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         Ok((partial_derivatives, second_partial_derivatives))
     }
 
-
-
     ///////////////////////////// calculate the third partial derivatives (for getter to python)
     #[allow(clippy::type_complexity)]
     pub fn third_partial_derivatives<D>(
         &self,
         temperature: f64,
         density: &Array<f64, D::Larger>,
-        convolver: &Arc<dyn Convolver<f64, D>>,
+        convolver_wd: &Arc<dyn Convolver<f64, D>>,
     ) -> EosResult<(
         Vec<Array<f64, D::Larger>>,
         Vec<Array<f64, <<D as Dimension>::Larger as Dimension>::Larger>>,
@@ -532,7 +532,7 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         D: Dimension,
         D::Larger: Dimension<Smaller = D>,
     {
-        let weighted_densities = convolver.weighted_densities(density);
+        let weighted_densities = convolver_wd.weighted_densities(density);
         let contributions = self.contributions();
         let mut partial_derivatives = Vec::with_capacity(contributions.len());
         let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
@@ -546,7 +546,11 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             let dim = wd.shape();
             let dim2: Vec<_> = std::iter::once(&nwd).chain(dim).cloned().collect();
             let mut pd2 = Array::zeros(dim2).into_dimensionality().unwrap();
-            let dim3: Vec<_> = std::iter::once(&nwd).chain(std::iter::once(&nwd)).chain(dim).cloned().collect();
+            let dim3: Vec<_> = std::iter::once(&nwd)
+                .chain(std::iter::once(&nwd))
+                .chain(dim)
+                .cloned()
+                .collect();
             let mut pd3 = Array::zeros(dim3).into_dimensionality().unwrap();
             c.third_partial_derivatives(
                 temperature,
@@ -560,7 +564,11 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             second_partial_derivatives.push(pd2);
             third_partial_derivatives.push(pd3);
         }
-        Ok((partial_derivatives, second_partial_derivatives, third_partial_derivatives))
+        Ok((
+            partial_derivatives,
+            second_partial_derivatives,
+            third_partial_derivatives,
+        ))
     }
 
     /// Calculate the bond integrals $I_{\alpha\alpha'}(\mathbf{r})$

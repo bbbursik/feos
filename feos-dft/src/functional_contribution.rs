@@ -36,7 +36,7 @@ impl_helmholtz_energy!(f64);
 impl_helmholtz_energy!(Dual64);
 impl_helmholtz_energy!(Dual<DualVec64<3>, f64>);
 impl_helmholtz_energy!(HyperDual64);
-impl_helmholtz_energy!(HyperDual2_64);
+impl_helmholtz_energy!(HyperHyperDual64);
 impl_helmholtz_energy!(Dual2_64);
 impl_helmholtz_energy!(Dual3_64);
 impl_helmholtz_energy!(HyperDual<Dual64, f64>);
@@ -78,7 +78,7 @@ pub trait FunctionalContribution:
     + FunctionalContributionDual<Dual64>
     + FunctionalContributionDual<Dual<DualVec64<3>, f64>>
     + FunctionalContributionDual<HyperDual64>
-    + FunctionalContributionDual<HyperDual2_64>
+    + FunctionalContributionDual<HyperHyperDual64>
     + FunctionalContributionDual<Dual2_64>
     + FunctionalContributionDual<Dual3_64>
     + FunctionalContributionDual<HyperDual<Dual64, f64>>
@@ -159,7 +159,6 @@ pub trait FunctionalContribution:
         Ok(())
     }
 
-
     fn third_partial_derivatives(
         &self,
         temperature: f64,
@@ -169,20 +168,17 @@ pub trait FunctionalContribution:
         mut second_partial_derivative: ArrayViewMut3<f64>,
         mut third_partial_derivative: ArrayViewMut4<f64>,
     ) -> EosResult<()> {
-        let mut wd = weighted_densities.mapv(HyperDual2_64::from);
-        let t = HyperDual2_64::from(temperature);
+        let mut wd = weighted_densities.mapv(HyperHyperDual64::from);
+        let t = HyperHyperDual64::from(temperature);
         let mut phi = Array::zeros(weighted_densities.raw_dim().remove_axis(Axis(0)));
 
         for i in 0..wd.shape()[0] {
-            wd.index_axis_mut(Axis(0), i)
-                .map_inplace(|x| x.eps1 = 1.0);
+            wd.index_axis_mut(Axis(0), i).map_inplace(|x| x.eps1 = 1.0);
             for j in 0..=i {
-                wd.index_axis_mut(Axis(0), j)
-                    .map_inplace(|x| x.eps2 = 1.0);
-                
+                wd.index_axis_mut(Axis(0), j).map_inplace(|x| x.eps2 = 1.0);
+
                 for k in 0..=j {
-                    wd.index_axis_mut(Axis(0), k)
-                        .map_inplace(|x| x.eps3 = 1.0);
+                    wd.index_axis_mut(Axis(0), k).map_inplace(|x| x.eps3 = 1.0);
                     phi = self.calculate_helmholtz_energy_density(t, wd.view())?;
                     let p = phi.mapv(|p| p.eps1eps2eps3);
                     // third_partial_derivative
@@ -191,12 +187,17 @@ pub trait FunctionalContribution:
                     //     .index_axis_mut(Axis(0), k)
                     //     .assign(&p);
                     // assign the current p to the appropriate third partial derivatives
-                    self.assign_third_partial_derivatives(i, j, k, third_partial_derivative.view_mut(), p)?;
-                    
-                    wd.index_axis_mut(Axis(0), k)
-                        .map_inplace(|x| x.eps3 = 0.0);
+                    self.assign_third_partial_derivatives(
+                        i,
+                        j,
+                        k,
+                        third_partial_derivative.view_mut(),
+                        p,
+                    )?;
+
+                    wd.index_axis_mut(Axis(0), k).map_inplace(|x| x.eps3 = 0.0);
                 }
-                
+
                 second_partial_derivative
                     .index_axis_mut(Axis(0), i)
                     .index_axis_mut(Axis(0), j)
@@ -207,14 +208,12 @@ pub trait FunctionalContribution:
                         .index_axis_mut(Axis(0), i)
                         .assign(&phi.mapv(|p| p.eps1eps2));
                 }
-                wd.index_axis_mut(Axis(0), j)
-                    .map_inplace(|x| x.eps2 = 0.0);
+                wd.index_axis_mut(Axis(0), j).map_inplace(|x| x.eps2 = 0.0);
             }
             first_partial_derivative
                 .index_axis_mut(Axis(0), i)
                 .assign(&phi.mapv(|p| p.eps1));
-            wd.index_axis_mut(Axis(0), i)
-                .map_inplace(|x| x.eps1 = 0.0);
+            wd.index_axis_mut(Axis(0), i).map_inplace(|x| x.eps1 = 0.0);
         }
         helmholtz_energy_density.assign(&phi.mapv(|p| p.re));
         Ok(())
@@ -223,39 +222,39 @@ pub trait FunctionalContribution:
     fn assign_third_partial_derivatives(
         &self,
         i: usize,
-        j: usize, 
-        k: usize, 
+        j: usize,
+        k: usize,
         third_partial_derivative: ArrayViewMut4<f64>,
         p: Array1<f64>,
     ) -> EosResult<()> {
-        let mut indizes = vec![(i,j,k)];
+        let mut indizes = vec![(i, j, k)];
         // if (i == j) & (j == k) {
         //     indizes.push((i,j,k));
         // }
         if (i != j) & (j == k) {
-            indizes.push((j,i,k));
-            indizes.push((j,k,i));
+            indizes.push((j, i, k));
+            indizes.push((j, k, i));
         }
         if (i == j) & (j != k) {
-            indizes.push((i,k,j));
-            indizes.push((k,i,j));
-        }  
+            indizes.push((i, k, j));
+            indizes.push((k, i, j));
+        }
         if (i == k) & (j != k) {
-            indizes.push((i,k,j));
-            indizes.push((j,i,k));
-        }  
+            indizes.push((i, k, j));
+            indizes.push((j, i, k));
+        }
         if (i != k) & (j != k) & (i != j) {
-            indizes.push((i,k,j));
-            indizes.push((j,i,k));
-            indizes.push((j,k,i));
-            indizes.push((k,i,j));
-            indizes.push((k,j,i));
+            indizes.push((i, k, j));
+            indizes.push((j, i, k));
+            indizes.push((j, k, i));
+            indizes.push((k, i, j));
+            indizes.push((k, j, i));
         }
 
         self.perform_assign_tpd(indizes, third_partial_derivative, p)?;
 
-        Ok(())     
-    }  
+        Ok(())
+    }
 
     fn perform_assign_tpd(
         &self,
@@ -263,25 +262,23 @@ pub trait FunctionalContribution:
         mut third_partial_derivative: ArrayViewMut4<f64>,
         p: Array1<f64>,
     ) -> EosResult<()> {
-        for (i,j,k) in indizes.iter(){
+        for (i, j, k) in indizes.iter() {
             third_partial_derivative
                 .index_axis_mut(Axis(0), *i)
                 .index_axis_mut(Axis(0), *j)
                 .index_axis_mut(Axis(0), *k)
                 .assign(&p);
-            }
+        }
         Ok(())
     }
-
 }
-
 
 impl<T> FunctionalContribution for T where
     T: FunctionalContributionDual<f64>
         + FunctionalContributionDual<Dual64>
         + FunctionalContributionDual<Dual<DualVec64<3>, f64>>
         + FunctionalContributionDual<HyperDual64>
-        + FunctionalContributionDual<HyperDual2_64>
+        + FunctionalContributionDual<HyperHyperDual64>
         + FunctionalContributionDual<Dual2_64>
         + FunctionalContributionDual<Dual3_64>
         + FunctionalContributionDual<HyperDual<Dual64, f64>>

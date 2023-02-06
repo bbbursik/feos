@@ -113,10 +113,13 @@ fn test_dft_propane() -> Result<(), Box<dyn Error>> {
     let vle_pure = PhaseEquilibrium::pure(&func_pure, t, None, Default::default())?;
     let vle_full = PhaseEquilibrium::pure(&func_full, t, None, Default::default())?;
     let vle_full_vec = PhaseEquilibrium::pure(&func_full_vec, t, None, Default::default())?;
-    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false)?.solve(None)?;
-    let profile_full = PlanarInterface::from_tanh(&vle_full, points, w, tc, false)?.solve(None)?;
+    let profile_pure =
+        PlanarInterface::from_tanh(&vle_pure, points, w, tc, false, false, false)?.solve(None)?;
+    let profile_full =
+        PlanarInterface::from_tanh(&vle_full, points, w, tc, false, false, false)?.solve(None)?;
     let profile_full_vec =
-        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false)?.solve(None)?;
+        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false, false, false)?
+            .solve(None)?;
     let _ = func_pure.solve_pdgt(&vle_pure, 198, 0, None)?;
     println!(
         "pure {} {} {} {}",
@@ -228,9 +231,9 @@ fn test_dft_propane_newton() -> Result<(), Box<dyn Error>> {
     let tc = State::critical_point(&func, None, None, Default::default())?.temperature;
     let vle = PhaseEquilibrium::pure(&func, t, None, Default::default())?;
     let solver = DFTSolver::new(Some(Verbosity::Iter)).newton(None, None, None, None);
-    PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(Some(&solver))?;
+    PlanarInterface::from_tanh(&vle, points, w, tc, false, false, false)?.solve(Some(&solver))?;
     let solver = DFTSolver::new(Some(Verbosity::Iter)).newton(Some(true), None, None, None);
-    PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(Some(&solver))?;
+    PlanarInterface::from_tanh(&vle, points, w, tc, false, false, false)?.solve(Some(&solver))?;
     Ok(())
 }
 
@@ -255,9 +258,11 @@ fn test_dft_water() -> Result<(), Box<dyn Error>> {
     let tc = State::critical_point(&func_pure, None, None, Default::default())?.temperature;
     let vle_pure = PhaseEquilibrium::pure(&func_pure, t, None, Default::default())?;
     let vle_full_vec = PhaseEquilibrium::pure(&func_full_vec, t, None, Default::default())?;
-    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false)?.solve(None)?;
+    let profile_pure =
+        PlanarInterface::from_tanh(&vle_pure, points, w, tc, false, false, false)?.solve(None)?;
     let profile_full_vec =
-        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false)?.solve(None)?;
+        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false, false, false)?
+            .solve(None)?;
     println!(
         "pure {} {} {}",
         profile_pure.surface_tension.unwrap(),
