@@ -41,6 +41,8 @@ macro_rules! impl_planar_interface {
                 l_grid: PySINumber,
                 critical_temperature: PySINumber,
                 fix_equimolar_surface: Option<bool>,
+                use_local_wd: Option<bool>,
+                use_local_fd: Option<bool>,
             ) -> PyResult<Self> {
                 let profile = PlanarInterface::from_tanh(
                     &vle.0,
@@ -48,6 +50,8 @@ macro_rules! impl_planar_interface {
                     l_grid.into(),
                     critical_temperature.into(),
                     fix_equimolar_surface.unwrap_or(false),
+                    use_local_wd.unwrap_or(false),
+                    use_local_fd.unwrap_or(false),
                 )?;
                 Ok(PyPlanarInterface(profile))
             }
