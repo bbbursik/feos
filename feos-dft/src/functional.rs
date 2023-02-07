@@ -421,25 +421,50 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
     {
         let weighted_densities = convolver_wd.weighted_densities(density);
         let contributions = self.contributions();
-        let mut partial_derivatives = Vec::with_capacity(contributions.len());
         let mut helmholtz_energy_density = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+        let mut partial_derivatives = Vec::with_capacity(contributions.len());
+
+        let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
+        let mut third_partial_derivatives = Vec::with_capacity(contributions.len());
         for (c, wd) in contributions.iter().zip(weighted_densities) {
             let nwd = wd.shape()[0];
             let ngrid = wd.len() / nwd;
             let mut phi = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
             let mut pd = Array::zeros(wd.raw_dim());
-            c.first_partial_derivatives(
+            // c.first_partial_derivatives(
+            //     temperature,
+            //     wd.into_shape((nwd, ngrid)).unwrap(),
+            //     phi.view_mut().into_shape(ngrid).unwrap(),
+            //     pd.view_mut().into_shape((nwd, ngrid)).unwrap(),
+            // )?;
+            // new
+            let mut dim = vec![nwd, nwd];
+            wd.shape().iter().skip(1).for_each(|&d| dim.push(d));
+            let mut spd = Array::zeros(&*dim).into_dimensionality().unwrap();
+            dim.insert(0, nwd);
+            let mut tpd = Array::zeros(dim).into_dimensionality().unwrap();
+            c.third_partial_derivatives(
                 temperature,
-                wd.into_shape((nwd, ngrid)).unwrap(),
+                wd.view().into_shape((nwd, ngrid)).unwrap(),
                 phi.view_mut().into_shape(ngrid).unwrap(),
                 pd.view_mut().into_shape((nwd, ngrid)).unwrap(),
+                spd.view_mut().into_shape((nwd, nwd, ngrid)).unwrap(),
+                tpd.view_mut().into_shape((nwd, nwd, nwd, ngrid)).unwrap(),
             )?;
+            third_partial_derivatives.push(tpd);
+            second_partial_derivatives.push(spd);
+
             partial_derivatives.push(pd);
             helmholtz_energy_density += &phi;
         }
         Ok((
             helmholtz_energy_density,
-            convolver_fd.functional_derivative(&partial_derivatives, None, None, None),
+            convolver_fd.functional_derivative(
+                &partial_derivatives,
+                Some(&second_partial_derivatives),
+                Some(&third_partial_derivatives),
+                Some(density),
+            ),
         ))
     }
 

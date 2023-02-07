@@ -277,7 +277,7 @@ where
         third_partial_derivatives: Option<
             &[Array<T, <<D::Larger as Dimension>::Larger as Dimension>::Larger>],
         >,
-        weighted_densities: Option<&[Array<T, D::Larger>]>,
+        density: Option<&Array<T, D::Larger>>,
     ) -> Array<T, D::Larger> {
         // Allocate arrays for the the local contribution to the functional derivative
         // and the functional derivative in Fourier space

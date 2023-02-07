@@ -39,7 +39,7 @@ pub trait Convolver<T, D: Dimension>: Send + Sync {
         third_partial_derivatives: Option<
             &[Array<T, <<D::Larger as Dimension>::Larger as Dimension>::Larger>],
         >,
-        weighted_densities: Option<&[Array<T, D::Larger>]>,
+        density: Option<&Array<T, D::Larger>>,
     ) -> Array<T, D::Larger>;
 }
 
@@ -71,9 +71,9 @@ where
         let grad = Array::from_shape_fn(f.raw_dim(), |(c, i)| {
             let width: usize = 1;
             let d = if i as isize - width as isize <= 0 {
-                (f[(c, i + width)] - f[(c, i)]) * 0.0 // Left value --> where from?
+                (f[(c, i + width)] - f[(c, i)]) //* 0.0 // Left value --> where from?
             } else if i + width >= f.shape()[1] - 1 {
-                (f[(c, i)] - f[(c, i - width)]) * 0.0
+                (f[(c, i)] - f[(c, i - width)]) //* 0.0
             } else {
                 f[(c, i + width)] - f[(c, i - width)]
                 // (f[(c, i + 1)] - f[(c, i)]) * 2.0
@@ -88,11 +88,11 @@ where
             let width: usize = 1;
             let width_f64 = width as f64;
             let d = if i as isize - width as isize <= 0 {
-                (f[(c, i + width * 2)] - f[(c, i + width)] * 2.0 + f[(c, i)]) // * 0.0
+                (f[(c, i + width * 2)] - f[(c, i + width)] * 2.0 + f[(c, i)]) //* 0.0
             } else if i + width >= f.shape()[1] - 1 {
                 (f[(c, i)] - f[(c, i - width)] * 2.0 + f[(c, i - width * 2)]) // * 0.0
             } else {
-                (f[(c, i + width)] - f[(c, i)] * 2.0 + f[(c, i - width)])
+                f[(c, i + width)] - f[(c, i)] * 2.0 + f[(c, i - width)]
             };
 
             d / (dx * dx) / (width_f64 * width_f64)
@@ -159,7 +159,12 @@ where
 
             // Calculating weighted densities {scalar & vector, component}
             // only in 1D the vector and scalar wds can be calculated together like this
-            for _wf in &wf.scalar_component_weighted_densities {
+            // for _wf in &wf.scalar_component_weighted_densities {
+
+            // Calculating functional derivative {scalar/vector, component}
+            for _it in 0..(wf.scalar_component_weighted_densities.len()
+                + wf.vector_component_weighted_densities.len())
+            {
                 for (i, (((rho, grad), lapl), mut res)) in density
                     .outer_iter()
                     .zip(gradient.outer_iter())
@@ -180,9 +185,14 @@ where
                 k += segments;
             }
 
+            // for _wf in &wf.scalar_fmt_weighted_densities {
+
             // Calculating weighted densities {scalar/vector, FMT}
             // only in 1D the vector and scalar wds can be calculated together like this
-            for _wf in &wf.scalar_fmt_weighted_densities {
+            // Calculating functional derivative {scalar/vector, FMT}
+            for _it in
+                0..(wf.scalar_fmt_weighted_densities.len() + wf.vector_fmt_weighted_densities.len())
+            {
                 for (i, ((rho, grad), lapl)) in density
                     .outer_iter()
                     .zip(gradient.outer_iter())
@@ -210,7 +220,7 @@ where
         partial_derivatives: &[Array<T, Ix2>],
         second_partial_derivatives: Option<&[Array<T, Ix3>]>,
         third_partial_derivatives: Option<&[Array<T, Ix4>]>,
-        weighted_densities: Option<&[Array<T, Ix2>]>,
+        density: Option<&Array<T, Ix2>>,
     ) -> Array<T, Ix2> {
         // Determine the dimension of the functional derivative, which is [n_segments, n_grid1, ngrid2, ... ]
         let mut dim = vec![(self.weight_functions[0]).component_index.len()];
@@ -221,6 +231,12 @@ where
             .for_each(|&d| dim.push(d));
 
         let dx = self.grid[1] - self.grid[0];
+
+        // The gradients of the density are the same for all contributions and have to be calculated only once
+        let gradient = self.gradient(density.unwrap(), dx);
+        let laplace = self.laplace(density.unwrap(), dx);
+        let gradient3 = self.gradient(&laplace, dx);
+        let gradient4 = self.laplace(&laplace, dx);
 
         // Allocate arrays for individual terms of functional derivatives
         let mut functional_derivative_0: Array<T, Ix2> =
@@ -235,7 +251,7 @@ where
                 .unwrap();
 
         // loop through contributions
-        for (i, (((((wf, wc), fpd), spd), tpd), wd)) in self
+        for (i, ((((wf, wc), fpd), spd), tpd)) in self
             // for (i, (((wf, wc), pd), secparder)) in self
             .weight_functions
             .iter()
@@ -243,19 +259,13 @@ where
             .zip(partial_derivatives.iter())
             .zip(second_partial_derivatives.unwrap().iter())
             .zip(third_partial_derivatives.unwrap().iter())
-            .zip(weighted_densities.unwrap().iter())
             .enumerate()
         {
             let n_segments = wf.component_index.len();
-            let n_wd = wd.shape()[0];
+            let n_wd = fpd.shape()[0];
             let w0 = wc.mapv(|w| w.re);
             let w1 = wc.mapv(|w| -w.eps1[0]);
             let w2 = wc.mapv(|w| -0.5 * w.eps1eps2[(0, 0)]);
-
-            let gradient = self.gradient(wd, dx);
-            let laplace = self.laplace(wd, dx);
-            let gradient3 = self.gradient(&laplace, dx);
-            let gradient4 = self.laplace(&laplace, dx);
 
             let mut l = 0;
 
@@ -266,11 +276,11 @@ where
             }
 
             // Calculating functional derivative {scalar/vector, component}
-            for _it in 1..(wf.scalar_component_weighted_densities.len()
+            for _it in 0..(wf.scalar_component_weighted_densities.len()
                 + wf.vector_component_weighted_densities.len())
             {
-                for i in 1..n_segments {
-                    for alpha in 1..n_wd {
+                for i in 0..n_segments {
+                    for alpha in 0..n_wd {
                         // 0-order term
                         functional_derivative_0
                             .index_axis_mut(Axis_nd(0), i)
@@ -279,8 +289,8 @@ where
                                     * w0.slice(s![l..l + n_segments, ..]).into_diag()[i]),
                             );
 
-                        for j in 1..n_segments {
-                            for beta in 1..n_wd {
+                        for j in 0..n_segments {
+                            for beta in 0..n_wd {
                                 let grad_n_j_beta = &gradient.index_axis(Axis_nd(0), j)
                                     * w0.slice(s![l..l + n_segments, ..]).into_diag()[j]
                                     - &laplace.index_axis(Axis_nd(0), j)
@@ -315,8 +325,8 @@ where
                                             * w2.slice(s![l..l + n_segments, ..]).into_diag()[i]),
                                     );
 
-                                for k in 1..n_segments {
-                                    for gamma in 1..n_wd {
+                                for k in 0..n_segments {
+                                    for gamma in 0..n_wd {
                                         let grad_n_gamma = &gradient.index_axis(Axis_nd(0), gamma)
                                             * w0.slice(s![l..l + n_segments, ..]).into_diag()[k]
                                             - &laplace.index_axis(Axis_nd(0), gamma)
@@ -348,11 +358,11 @@ where
             }
 
             // Calculating functional derivative {scalar/vector, FMT}
-            for _it in 1..(wf.scalar_component_weighted_densities.len()
+            for _it in 0..(wf.scalar_component_weighted_densities.len()
                 + wf.vector_component_weighted_densities.len())
             {
-                for i in 1..n_segments {
-                    for alpha in 1..n_wd {
+                for i in 0..n_segments {
+                    for alpha in 0..n_wd {
                         // 0-order term
                         functional_derivative_0
                             .index_axis_mut(Axis_nd(0), i)
@@ -360,8 +370,8 @@ where
                                 &(&fpd.index_axis(Axis_nd(0), alpha) * w0.slice(s![l, ..])[i]),
                             );
 
-                        for j in 1..n_segments {
-                            for beta in 1..n_wd {
+                        for j in 0..n_segments {
+                            for beta in 0..n_wd {
                                 let grad_n_j_beta = &gradient.index_axis(Axis_nd(0), j)
                                     * w0.slice(s![l, ..])[j]
                                     - &laplace.index_axis(Axis_nd(0), j) * w1.slice(s![l, ..])[j]
@@ -392,8 +402,8 @@ where
                                             * w2.slice(s![l, ..])[i]),
                                     );
 
-                                for k in 1..n_segments {
-                                    for gamma in 1..n_wd {
+                                for k in 0..n_segments {
+                                    for gamma in 0..n_wd {
                                         let grad_n_gamma = &gradient.index_axis(Axis_nd(0), gamma)
                                             * w0.slice(s![l, ..])[k]
                                             - &laplace.index_axis(Axis_nd(0), gamma)
@@ -461,7 +471,7 @@ where
         partial_derivatives: &[Array1<T>],
         second_partial_derivatives: Option<&[Array2<T>]>,
         third_partial_derivatives: Option<&[Array3<T>]>,
-        weighted_densities: Option<&[Array1<T>]>,
+        density: Option<&Array1<T>>,
     ) -> Array1<T> {
         self.weight_constants
             .iter()
@@ -868,7 +878,7 @@ where
         third_partial_derivatives: Option<
             &[Array<T, <<D::Larger as Dimension>::Larger as Dimension>::Larger>],
         >,
-        weighted_densities: Option<&[Array<T, D::Larger>]>,
+        density: Option<&Array<T, D::Larger>>,
     ) -> Array<T, D::Larger> {
         // Allocate arrays for the result, the local contribution to the functional derivative,
         // the functional derivative in Fourier space, and the bulk contributions
@@ -1047,7 +1057,7 @@ where
         third_partial_derivatives: Option<
             &[Array<T, <<D::Larger as Dimension>::Larger as Dimension>::Larger>],
         >,
-        weighted_densities: Option<&[Array<T, D::Larger>]>,
+        density: Option<&Array<T, D::Larger>>,
     ) -> Array<T, D::Larger> {
         // subtract boundary profile from full profile
         let mut partial_derivatives_full = Vec::new();

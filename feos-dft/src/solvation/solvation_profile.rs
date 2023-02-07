@@ -109,10 +109,18 @@ impl<F: HelmholtzEnergyFunctional + FluidParameters> SolvationProfile<F> {
         // initialize convolver
         let grid = Grid::Cartesian3(x, y, z);
         let weight_functions = dft.weight_functions(t);
-        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_wd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
+        let convolver_fd = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
 
         Ok(Self {
-            profile: DFTProfile::new(grid, convolver, bulk, Some(external_potential), None)?,
+            profile: DFTProfile::new(
+                grid,
+                convolver_wd,
+                convolver_fd,
+                bulk,
+                Some(external_potential),
+                None,
+            )?,
             grand_potential: None,
             solvation_free_energy: None,
         })

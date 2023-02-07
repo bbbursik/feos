@@ -28,6 +28,14 @@ macro_rules! impl_planar_interface {
             ///     If True use additional constraints to fix the
             ///     equimolar surface of the system.
             ///     Defaults to False.
+            /// use_local_wd: bool, optional
+            ///     If True use gradConvolver for local weighted densities instead of
+            ///     FFT-weighted densities.
+            ///     Defaults to False.
+            /// use_local_fd: bool, optional
+            ///     If True use gradConvolver for local functional derivative instead of
+            ///     FFT-functional derivative.
+            ///     Defaults to False.
             ///
             /// Returns
             /// -------
@@ -69,6 +77,7 @@ macro_rules! impl_planar_interface {
             ///     equimolar surface of the system.
             ///     Defaults to False.
             ///
+            ///
             /// Returns
             /// -------
             /// PlanarInterface
@@ -92,6 +101,14 @@ macro_rules! impl_planar_interface {
             ///     The width of the calculation domain.
             /// density_profile: SIArray2
             ///     Initial condition for the density profile iterations
+            /// use_local_wd: bool, optional
+            ///     If True use gradConvolver for local weighted densities instead of
+            ///     FFT-weighted densities.
+            ///     Defaults to False.
+            /// use_local_fd: bool, optional
+            ///     If True use gradConvolver for local functional derivative instead of
+            ///     FFT-functional derivative.
+            ///     Defaults to False.
             ///
             /// Returns
             /// -------
@@ -103,8 +120,11 @@ macro_rules! impl_planar_interface {
                 n_grid: usize,
                 l_grid: PySINumber,
                 density_profile: PySIArray2,
+                use_local_wd: Option<bool>,
+                use_local_fd: Option<bool>,
+
             ) -> PyResult<Self> {
-                let mut profile = PlanarInterface::new(&vle.0, n_grid, l_grid.into())?;
+                let mut profile = PlanarInterface::new(&vle.0, n_grid, l_grid.into(), use_local_wd.unwrap_or(false), use_local_fd.unwrap_or(false))?;
                 profile.profile.density = density_profile.into();
                 Ok(PyPlanarInterface(profile))
             }
