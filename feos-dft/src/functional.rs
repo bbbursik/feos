@@ -456,6 +456,9 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
 
             partial_derivatives.push(pd);
             helmholtz_energy_density += &phi;
+            // println!(
+            //     "Still alive, before call of convolver_fd.functional derivative in functional.rs"
+            // );
         }
         Ok((
             helmholtz_energy_density,

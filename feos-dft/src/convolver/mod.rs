@@ -160,7 +160,6 @@ where
             // Calculating weighted densities {scalar & vector, component}
             // only in 1D the vector and scalar wds can be calculated together like this
             // for _wf in &wf.scalar_component_weighted_densities {
-
             // Calculating functional derivative {scalar/vector, component}
             for _it in 0..(wf.scalar_component_weighted_densities.len()
                 + wf.vector_component_weighted_densities.len())
@@ -186,7 +185,6 @@ where
             }
 
             // for _wf in &wf.scalar_fmt_weighted_densities {
-
             // Calculating weighted densities {scalar/vector, FMT}
             // only in 1D the vector and scalar wds can be calculated together like this
             // Calculating functional derivative {scalar/vector, FMT}
@@ -236,7 +234,7 @@ where
         let gradient = self.gradient(density.unwrap(), dx);
         let laplace = self.laplace(density.unwrap(), dx);
         let gradient3 = self.gradient(&laplace, dx);
-        let gradient4 = self.laplace(&laplace, dx);
+        let gradient4 = Array::<T, Ix2>::zeros(density.unwrap().raw_dim()); //   self.laplace(&laplace, dx);
 
         // Allocate arrays for individual terms of functional derivatives
         let mut functional_derivative_0: Array<T, Ix2> =
@@ -261,174 +259,103 @@ where
             .zip(third_partial_derivatives.unwrap().iter())
             .enumerate()
         {
+            // println!("fpd.shape() = {:?}", fpd.shape());
+            // println!("spd.shape() = {:?}", spd.shape());
+            // println!("tpd.shape() = {:?}", tpd.shape());
             let n_segments = wf.component_index.len();
             let n_wd = fpd.shape()[0];
             let w0 = wc.mapv(|w| w.re);
             let w1 = wc.mapv(|w| -w.eps1[0]);
             let w2 = wc.mapv(|w| -0.5 * w.eps1eps2[(0, 0)]);
+            // println!("w0 =  {:?}", w0);
+            // println!("w1 =  {:?}", w1);
+            // println!("w2 =  {:?}", w2);
 
             let mut l = 0;
 
             // Assigning possible local densities to the front of the array
-            if wf.local_density {
-                functional_derivative_0 += &fpd.slice_axis(Axis_nd(0), Slice::from(..n_segments));
-                l += n_segments;
-            }
+            // if wf.local_density {
+            //     functional_derivative_0 += &fpd.slice_axis(Axis_nd(0), Slice::from(..n_segments));
+            //     l += n_segments;
+            // }
 
-            // Calculating functional derivative {scalar/vector, component}
-            for _it in 0..(wf.scalar_component_weighted_densities.len()
-                + wf.vector_component_weighted_densities.len())
-            {
-                for i in 0..n_segments {
-                    for alpha in 0..n_wd {
-                        // 0-order term
-                        functional_derivative_0
-                            .index_axis_mut(Axis_nd(0), i)
-                            .add_assign(
-                                &(&fpd.index_axis(Axis_nd(0), alpha)
-                                    * w0.slice(s![l..l + n_segments, ..]).into_diag()[i]),
-                            );
+            for i in 0..n_segments {
+                // println!(
+                //     "Still alive, in first loop in mod.rs convolver, with  i = {} ",
+                //     i
+                // );
+                for alpha in 0..n_wd {
+                    // 0-order term
+                    functional_derivative_0
+                        .index_axis_mut(Axis_nd(0), i)
+                        .add_assign(&(&fpd.index_axis(Axis_nd(0), alpha) * w0[(alpha, i)]));
+                    // println!(
+                    //             "Still alive, in first loop after 0 order term , with   i = {}, alpha = {} ",
+                    //             i, alpha
+                    //         );
 
-                        for j in 0..n_segments {
-                            for beta in 0..n_wd {
-                                let grad_n_j_beta = &gradient.index_axis(Axis_nd(0), j)
-                                    * w0.slice(s![l..l + n_segments, ..]).into_diag()[j]
-                                    - &laplace.index_axis(Axis_nd(0), j)
-                                        * w1.slice(s![l..l + n_segments, ..]).into_diag()[j]
-                                    + &gradient3.index_axis(Axis_nd(0), j)
-                                        * w2.slice(s![l..l + n_segments, ..]).into_diag()[j];
-                                functional_derivative_1
-                                    .index_axis_mut(Axis_nd(0), i)
-                                    .add_assign(
-                                        &(&spd
-                                            .index_axis(Axis_nd(0), alpha)
-                                            .index_axis(Axis_nd(0), beta)
-                                            * &grad_n_j_beta
-                                            * w1.slice(s![l..l + n_segments, ..]).into_diag()[i]),
-                                    );
+                    for j in 0..n_segments {
+                        for beta in 0..n_wd {
+                            let grad_n_j_beta = &gradient.index_axis(Axis_nd(0), j) * w0[(beta, j)]
+                                - &laplace.index_axis(Axis_nd(0), j) * w1[(beta, j)]
+                                + &gradient3.index_axis(Axis_nd(0), j) * w2[(beta, j)];
+                            functional_derivative_1
+                                .index_axis_mut(Axis_nd(0), i)
+                                .add_assign(
+                                    &(&spd
+                                        .index_axis(Axis_nd(0), alpha)
+                                        .index_axis(Axis_nd(0), beta)
+                                        * &grad_n_j_beta
+                                        * w1[(alpha, i)]),
+                                );
 
-                                // \nabla^2 n for j,beta
-                                let lapl_n = &laplace.index_axis(Axis_nd(0), j)
-                                    * w0.slice(s![l..l + n_segments, ..]).into_diag()[j]
-                                    - &gradient3.index_axis(Axis_nd(0), j)
-                                        * w1.slice(s![l..l + n_segments, ..]).into_diag()[j]
-                                    + &gradient4.index_axis(Axis_nd(0), j)
-                                        * w2.slice(s![l..l + n_segments, ..]).into_diag()[j];
+                            // \nabla^2 n for j,beta
+                            let lapl_n = &laplace.index_axis(Axis_nd(0), j) * w0[(beta, j)]
+                                - &gradient3.index_axis(Axis_nd(0), j) * w1[(beta, j)]
+                                + &gradient4.index_axis(Axis_nd(0), j) * w2[(beta, j)];
 
-                                functional_derivative_2
-                                    .index_axis_mut(Axis_nd(0), i)
-                                    .add_assign(
-                                        &(&spd
-                                            .index_axis(Axis_nd(0), alpha)
-                                            .index_axis(Axis_nd(0), beta)
-                                            * lapl_n
-                                            * w2.slice(s![l..l + n_segments, ..]).into_diag()[i]),
-                                    );
+                            functional_derivative_2
+                                .index_axis_mut(Axis_nd(0), i)
+                                .add_assign(
+                                    &(&spd
+                                        .index_axis(Axis_nd(0), alpha)
+                                        .index_axis(Axis_nd(0), beta)
+                                        * lapl_n
+                                        * w2[(alpha, i)]),
+                                );
 
-                                for k in 0..n_segments {
-                                    for gamma in 0..n_wd {
-                                        let grad_n_gamma = &gradient.index_axis(Axis_nd(0), gamma)
-                                            * w0.slice(s![l..l + n_segments, ..]).into_diag()[k]
-                                            - &laplace.index_axis(Axis_nd(0), gamma)
-                                                * w1.slice(s![l..l + n_segments, ..]).into_diag()
-                                                    [k]
-                                            + &gradient3.index_axis(Axis_nd(0), gamma)
-                                                * w2.slice(s![l..l + n_segments, ..]).into_diag()
-                                                    [k];
+                            // println!(
+                            //             "Still alive, in first loop after first second order term , with i = {}, alpha = {} , j = {}, beta = {}",
+                            //           i, alpha, j,  beta
+                            //         );
 
-                                        functional_derivative_2
-                                            .index_axis_mut(Axis_nd(0), i)
-                                            .add_assign(
-                                                &(&tpd
-                                                    .index_axis(Axis_nd(0), alpha)
-                                                    .index_axis(Axis_nd(0), beta)
-                                                    .index_axis(Axis_nd(0), gamma)
-                                                    * &grad_n_j_beta
-                                                    * &grad_n_gamma
-                                                    * w2.slice(s![l..l + n_segments, ..])
-                                                        .into_diag()[i]),
-                                            )
-                                    }
+                            for k in 0..n_segments {
+                                for gamma in 0..n_wd {
+                                    let grad_n_gamma = &gradient.index_axis(Axis_nd(0), k)
+                                        * w0[(gamma, k)]
+                                        - &laplace.index_axis(Axis_nd(0), k) * w1[(gamma, k)]
+                                        + &gradient3.index_axis(Axis_nd(0), k) * w2[(gamma, k)];
+
+                                    functional_derivative_2
+                                        .index_axis_mut(Axis_nd(0), i)
+                                        .add_assign(
+                                            &(&tpd
+                                                .index_axis(Axis_nd(0), alpha)
+                                                .index_axis(Axis_nd(0), beta)
+                                                .index_axis(Axis_nd(0), gamma)
+                                                * &grad_n_j_beta
+                                                * &grad_n_gamma
+                                                * w2[(alpha, i)]),
+                                        );
+                                    // println!(
+                                    //             "Still alive, in first loop after last second order term , with   i = {}, alpha = {} , j = {}, beta = {}, k = {}, gamma = {}",
+                                    //             i, alpha, j,  beta, k , gamma
+                                    //         );
                                 }
                             }
                         }
                     }
                 }
-                l += n_segments;
-            }
-
-            // Calculating functional derivative {scalar/vector, FMT}
-            for _it in 0..(wf.scalar_component_weighted_densities.len()
-                + wf.vector_component_weighted_densities.len())
-            {
-                for i in 0..n_segments {
-                    for alpha in 0..n_wd {
-                        // 0-order term
-                        functional_derivative_0
-                            .index_axis_mut(Axis_nd(0), i)
-                            .add_assign(
-                                &(&fpd.index_axis(Axis_nd(0), alpha) * w0.slice(s![l, ..])[i]),
-                            );
-
-                        for j in 0..n_segments {
-                            for beta in 0..n_wd {
-                                let grad_n_j_beta = &gradient.index_axis(Axis_nd(0), j)
-                                    * w0.slice(s![l, ..])[j]
-                                    - &laplace.index_axis(Axis_nd(0), j) * w1.slice(s![l, ..])[j]
-                                    + &gradient3.index_axis(Axis_nd(0), j) * w2.slice(s![l, ..])[j];
-                                functional_derivative_1
-                                    .index_axis_mut(Axis_nd(0), i)
-                                    .add_assign(
-                                        &(&spd
-                                            .index_axis(Axis_nd(0), alpha)
-                                            .index_axis(Axis_nd(0), beta)
-                                            * &grad_n_j_beta
-                                            * w1.slice(s![l, ..])[i]),
-                                    );
-
-                                // \nabla^2 n for j,beta
-                                let lapl_n = &laplace.index_axis(Axis_nd(0), j)
-                                    * w0.slice(s![l, ..])[j]
-                                    - &gradient3.index_axis(Axis_nd(0), j) * w1.slice(s![l, ..])[j]
-                                    + &gradient4.index_axis(Axis_nd(0), j) * w2.slice(s![l, ..])[j];
-
-                                functional_derivative_2
-                                    .index_axis_mut(Axis_nd(0), i)
-                                    .add_assign(
-                                        &(&spd
-                                            .index_axis(Axis_nd(0), alpha)
-                                            .index_axis(Axis_nd(0), beta)
-                                            * lapl_n
-                                            * w2.slice(s![l, ..])[i]),
-                                    );
-
-                                for k in 0..n_segments {
-                                    for gamma in 0..n_wd {
-                                        let grad_n_gamma = &gradient.index_axis(Axis_nd(0), gamma)
-                                            * w0.slice(s![l, ..])[k]
-                                            - &laplace.index_axis(Axis_nd(0), gamma)
-                                                * w1.slice(s![l, ..])[k]
-                                            + &gradient3.index_axis(Axis_nd(0), gamma)
-                                                * w2.slice(s![l, ..])[k];
-
-                                        functional_derivative_2
-                                            .index_axis_mut(Axis_nd(0), i)
-                                            .add_assign(
-                                                &(&tpd
-                                                    .index_axis(Axis_nd(0), alpha)
-                                                    .index_axis(Axis_nd(0), beta)
-                                                    .index_axis(Axis_nd(0), gamma)
-                                                    * &grad_n_j_beta
-                                                    * &grad_n_gamma
-                                                    * w2.slice(s![l, ..])[i]),
-                                            )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                l += n_segments;
             }
         }
         let functional_derivative =
