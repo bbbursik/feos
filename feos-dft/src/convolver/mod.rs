@@ -14,6 +14,8 @@ mod transform;
 pub use periodic_convolver::PeriodicConvolver;
 use transform::*;
 
+use ndarray_npy::{write_npy, WriteNpyExt};
+
 // use ndarray_npy::write_npy;
 
 /// Trait for numerical convolutions for DFT.
@@ -69,11 +71,11 @@ where
 
     pub fn gradient(&self, f: &Array<T, Ix2>, dx: T) -> Array<T, Ix2> {
         let grad = Array::from_shape_fn(f.raw_dim(), |(c, i)| {
-            let width: usize = 1;
+            let width: usize = 6;
             let d = if i as isize - width as isize <= 0 {
-                (f[(c, i + width)] - f[(c, i)]) //* 0.0 // Left value --> where from?
+                (f[(c, i + width)] - f[(c, i)]) * 0.0 // Left value --> where from?
             } else if i + width >= f.shape()[1] - 1 {
-                (f[(c, i)] - f[(c, i - width)]) //* 0.0
+                (f[(c, i)] - f[(c, i - width)]) * 0.0
             } else {
                 f[(c, i + width)] - f[(c, i - width)]
                 // (f[(c, i + 1)] - f[(c, i)]) * 2.0
@@ -85,12 +87,12 @@ where
 
     pub fn laplace(&self, f: &Array<T, Ix2>, dx: T) -> Array<T, Ix2> {
         let lapl = Array::from_shape_fn(f.raw_dim(), |(c, i)| {
-            let width: usize = 1;
+            let width: usize = 6;
             let width_f64 = width as f64;
             let d = if i as isize - width as isize <= 0 {
-                (f[(c, i + width * 2)] - f[(c, i + width)] * 2.0 + f[(c, i)]) //* 0.0
+                (f[(c, i + width * 2)] - f[(c, i + width)] * 2.0 + f[(c, i)]) * 0.0
             } else if i + width >= f.shape()[1] - 1 {
-                (f[(c, i)] - f[(c, i - width)] * 2.0 + f[(c, i - width * 2)]) // * 0.0
+                (f[(c, i)] - f[(c, i - width)] * 2.0 + f[(c, i - width * 2)]) * 0.0
             } else {
                 f[(c, i + width)] - f[(c, i)] * 2.0 + f[(c, i - width)]
             };
@@ -129,6 +131,8 @@ where
             .iter()
             .zip(self.weight_constants.iter())
         {
+            // write_npy("rho.npy", &density[0]).unwrap();
+
             let segments = wf.component_index.len();
             // let wf_hd = WeightFunctionInfo::from(HyperDual64::from(wf)); //brauche die wf mit T als Hyperdual für die weight constants, aber es kommt aus Interface als f64 --> übergeben aus Interface
             // let wf_hd = WeightFunctionInfo::from(*wf); //brauche die wf mit T als Hyperdual für die weight constants, aber es kommt aus Interface als f64 --> übergeben aus Interface
@@ -234,7 +238,7 @@ where
         let gradient = self.gradient(density.unwrap(), dx);
         let laplace = self.laplace(density.unwrap(), dx);
         let gradient3 = self.gradient(&laplace, dx);
-        let gradient4 = Array::<T, Ix2>::zeros(density.unwrap().raw_dim()); //   self.laplace(&laplace, dx);
+        let gradient4 = self.laplace(&laplace, dx); // Array::<T, Ix2>::zeros(density.unwrap().raw_dim()); //
 
         // Allocate arrays for individual terms of functional derivatives
         let mut functional_derivative_0: Array<T, Ix2> =

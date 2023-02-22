@@ -9,6 +9,7 @@ use feos_dft::{
     FunctionalContributionDual, WeightFunction, WeightFunctionInfo, WeightFunctionShape,
 };
 use ndarray::*;
+use ndarray_npy::write_npy;
 use num_dual::*;
 use std::f64::consts::{FRAC_PI_6, PI};
 use std::fmt;
@@ -68,6 +69,11 @@ impl<N: DualNum<f64> + ScalarOperand> FunctionalContributionDual<N> for PureFMTA
         // temperature dependent segment radius
         let r = self.parameters.hs_diameter(temperature)[0] * 0.5;
 
+        // let n3real = n3.mapv(|n3| n3.re());
+        // write_npy("n3.npy", &n3real).unwrap();
+        // println!("n3 = {}", n3real);
+        // println!("max(n3) = {}", n3real.max());
+        // println!("min(n3) = {}", n3real.min());
         // auxiliary variables
         if n3.iter().any(|n3| n3.re() > 1.0) {
             return Err(EosError::IterationFailed(String::from(
