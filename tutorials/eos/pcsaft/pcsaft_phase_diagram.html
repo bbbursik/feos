@@ -5,13 +5,14 @@
     <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../../../genindex.html" /><link rel="search" title="Search" href="../../../search.html" /><link rel="next" title="Entropy scaling of pure substances" href="pcsaft_entropy_scaling.html" /><link rel="prev" title="Representation of thermodynamic states" href="pcsaft_state.html" />
 
-    <!-- Generated with Sphinx 5.3.0 and Furo 2022.12.07 -->
+    <!-- Generated with Sphinx 5.3.0 and Furo 2023.03.27 -->
         <title>Pure substance phase diagrams - FeOs</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=91d0f0d1c444bdcb17a68e833c7a53903343c195" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo.css?digest=fad236701ea90a88636c2a8c73b44ae642ed2a53" />
     <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/tabs.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nbsphinx-code-cells.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     <link rel="stylesheet" type="text/css" href="../../../_static/style.css" />
     
@@ -430,6 +431,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/generated/feos.dft.HelmholtzEnergyFunctional.pcsaft.html">feos.dft.HelmholtzEnergyFunctional.pcsaft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../api/generated/feos.dft.HelmholtzEnergyFunctional.gc_pcsaft.html">feos.dft.HelmholtzEnergyFunctional.gc_pcsaft</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/generated/feos.dft.HelmholtzEnergyFunctional.pets.html">feos.dft.HelmholtzEnergyFunctional.pets</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/generated/feos.dft.HelmholtzEnergyFunctional.saftvrqmie.html">feos.dft.HelmholtzEnergyFunctional.saftvrqmie</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/generated/feos.dft.HelmholtzEnergyFunctional.fmt.html">feos.dft.HelmholtzEnergyFunctional.fmt</a></li>
@@ -650,12 +652,14 @@
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinaryRecord.html">feos.pcsaft.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-51" name="toctree-checkbox-51" role="switch" type="checkbox"/><label for="toctree-checkbox-51"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinaryRecord.__init__.html">feos.pcsaft.BinaryRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinaryRecord.from_json.html">feos.pcsaft.BinaryRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinaryRecord.from_json_str.html">feos.pcsaft.BinaryRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinaryRecord.to_json_str.html">feos.pcsaft.BinaryRecord.to_json_str</a></li>
 </ul>
 </li>
 <li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinarySegmentRecord.html">feos.pcsaft.BinarySegmentRecord</a><input class="toctree-checkbox" id="toctree-checkbox-52" name="toctree-checkbox-52" role="switch" type="checkbox"/><label for="toctree-checkbox-52"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinarySegmentRecord.__init__.html">feos.pcsaft.BinarySegmentRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinarySegmentRecord.from_json.html">feos.pcsaft.BinarySegmentRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinarySegmentRecord.from_json_str.html">feos.pcsaft.BinarySegmentRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pcsaft.BinarySegmentRecord.to_json_str.html">feos.pcsaft.BinarySegmentRecord.to_json_str</a></li>
 </ul>
@@ -690,44 +694,55 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.Identifier.to_json_str.html">feos.gc_pcsaft.Identifier.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.ChemicalRecord.html">feos.gc_pcsaft.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-58" name="toctree-checkbox-58" role="switch" type="checkbox"/><label for="toctree-checkbox-58"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.IdentifierOption.html">feos.gc_pcsaft.IdentifierOption</a><input class="toctree-checkbox" id="toctree-checkbox-58" name="toctree-checkbox-58" role="switch" type="checkbox"/><label for="toctree-checkbox-58"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.IdentifierOption.__init__.html">feos.gc_pcsaft.IdentifierOption.__init__</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.ChemicalRecord.html">feos.gc_pcsaft.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-59" name="toctree-checkbox-59" role="switch" type="checkbox"/><label for="toctree-checkbox-59"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.ChemicalRecord.__init__.html">feos.gc_pcsaft.ChemicalRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.ChemicalRecord.from_json_str.html">feos.gc_pcsaft.ChemicalRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.ChemicalRecord.to_json_str.html">feos.gc_pcsaft.ChemicalRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.JobackRecord.html">feos.gc_pcsaft.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-59" name="toctree-checkbox-59" role="switch" type="checkbox"/><label for="toctree-checkbox-59"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.JobackRecord.html">feos.gc_pcsaft.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-60" name="toctree-checkbox-60" role="switch" type="checkbox"/><label for="toctree-checkbox-60"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.JobackRecord.__init__.html">feos.gc_pcsaft.JobackRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.JobackRecord.from_json_str.html">feos.gc_pcsaft.JobackRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.JobackRecord.to_json_str.html">feos.gc_pcsaft.JobackRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.html">feos.gc_pcsaft.SegmentRecord</a><input class="toctree-checkbox" id="toctree-checkbox-60" name="toctree-checkbox-60" role="switch" type="checkbox"/><label for="toctree-checkbox-60"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.AssociationRecord.html">feos.gc_pcsaft.AssociationRecord</a><input class="toctree-checkbox" id="toctree-checkbox-61" name="toctree-checkbox-61" role="switch" type="checkbox"/><label for="toctree-checkbox-61"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.AssociationRecord.__init__.html">feos.gc_pcsaft.AssociationRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.AssociationRecord.from_json_str.html">feos.gc_pcsaft.AssociationRecord.from_json_str</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.AssociationRecord.to_json_str.html">feos.gc_pcsaft.AssociationRecord.to_json_str</a></li>
+</ul>
+</li>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.html">feos.gc_pcsaft.SegmentRecord</a><input class="toctree-checkbox" id="toctree-checkbox-62" name="toctree-checkbox-62" role="switch" type="checkbox"/><label for="toctree-checkbox-62"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.__init__.html">feos.gc_pcsaft.SegmentRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.from_json.html">feos.gc_pcsaft.SegmentRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.from_json_str.html">feos.gc_pcsaft.SegmentRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.SegmentRecord.to_json_str.html">feos.gc_pcsaft.SegmentRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.html">feos.gc_pcsaft.BinarySegmentRecord</a><input class="toctree-checkbox" id="toctree-checkbox-61" name="toctree-checkbox-61" role="switch" type="checkbox"/><label for="toctree-checkbox-61"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.html">feos.gc_pcsaft.BinarySegmentRecord</a><input class="toctree-checkbox" id="toctree-checkbox-63" name="toctree-checkbox-63" role="switch" type="checkbox"/><label for="toctree-checkbox-63"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.__init__.html">feos.gc_pcsaft.BinarySegmentRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.from_json.html">feos.gc_pcsaft.BinarySegmentRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.from_json_str.html">feos.gc_pcsaft.BinarySegmentRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.BinarySegmentRecord.to_json_str.html">feos.gc_pcsaft.BinarySegmentRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftRecord.html">feos.gc_pcsaft.GcPcSaftRecord</a><input class="toctree-checkbox" id="toctree-checkbox-62" name="toctree-checkbox-62" role="switch" type="checkbox"/><label for="toctree-checkbox-62"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftRecord.html">feos.gc_pcsaft.GcPcSaftRecord</a><input class="toctree-checkbox" id="toctree-checkbox-64" name="toctree-checkbox-64" role="switch" type="checkbox"/><label for="toctree-checkbox-64"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftRecord.__init__.html">feos.gc_pcsaft.GcPcSaftRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftRecord.from_json_str.html">feos.gc_pcsaft.GcPcSaftRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftRecord.to_json_str.html">feos.gc_pcsaft.GcPcSaftRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftEosParameters.html">feos.gc_pcsaft.GcPcSaftEosParameters</a><input class="toctree-checkbox" id="toctree-checkbox-63" name="toctree-checkbox-63" role="switch" type="checkbox"/><label for="toctree-checkbox-63"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftEosParameters.html">feos.gc_pcsaft.GcPcSaftEosParameters</a><input class="toctree-checkbox" id="toctree-checkbox-65" name="toctree-checkbox-65" role="switch" type="checkbox"/><label for="toctree-checkbox-65"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftEosParameters.__init__.html">feos.gc_pcsaft.GcPcSaftEosParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftEosParameters.from_json_segments.html">feos.gc_pcsaft.GcPcSaftEosParameters.from_json_segments</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftEosParameters.from_segments.html">feos.gc_pcsaft.GcPcSaftEosParameters.from_segments</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftFunctionalParameters.html">feos.gc_pcsaft.GcPcSaftFunctionalParameters</a><input class="toctree-checkbox" id="toctree-checkbox-64" name="toctree-checkbox-64" role="switch" type="checkbox"/><label for="toctree-checkbox-64"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftFunctionalParameters.html">feos.gc_pcsaft.GcPcSaftFunctionalParameters</a><input class="toctree-checkbox" id="toctree-checkbox-66" name="toctree-checkbox-66" role="switch" type="checkbox"/><label for="toctree-checkbox-66"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftFunctionalParameters.__init__.html">feos.gc_pcsaft.GcPcSaftFunctionalParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftFunctionalParameters.from_json_segments.html">feos.gc_pcsaft.GcPcSaftFunctionalParameters.from_json_segments</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.gc_pcsaft.GcPcSaftFunctionalParameters.from_segments.html">feos.gc_pcsaft.GcPcSaftFunctionalParameters.from_segments</a></li>
@@ -735,44 +750,45 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/peng_robinson.html"><code class="docutils literal notranslate"><span class="pre">feos.cubic</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-65" name="toctree-checkbox-65" role="switch" type="checkbox"/><label for="toctree-checkbox-65"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.Identifier.html">feos.cubic.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-66" name="toctree-checkbox-66" role="switch" type="checkbox"/><label for="toctree-checkbox-66"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/peng_robinson.html"><code class="docutils literal notranslate"><span class="pre">feos.cubic</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-67" name="toctree-checkbox-67" role="switch" type="checkbox"/><label for="toctree-checkbox-67"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.Identifier.html">feos.cubic.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-68" name="toctree-checkbox-68" role="switch" type="checkbox"/><label for="toctree-checkbox-68"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.Identifier.__init__.html">feos.cubic.Identifier.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.Identifier.from_json_str.html">feos.cubic.Identifier.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.Identifier.to_json_str.html">feos.cubic.Identifier.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.ChemicalRecord.html">feos.cubic.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-67" name="toctree-checkbox-67" role="switch" type="checkbox"/><label for="toctree-checkbox-67"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.ChemicalRecord.html">feos.cubic.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-69" name="toctree-checkbox-69" role="switch" type="checkbox"/><label for="toctree-checkbox-69"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.ChemicalRecord.__init__.html">feos.cubic.ChemicalRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.ChemicalRecord.from_json_str.html">feos.cubic.ChemicalRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.ChemicalRecord.to_json_str.html">feos.cubic.ChemicalRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.JobackRecord.html">feos.cubic.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-68" name="toctree-checkbox-68" role="switch" type="checkbox"/><label for="toctree-checkbox-68"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.JobackRecord.html">feos.cubic.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-70" name="toctree-checkbox-70" role="switch" type="checkbox"/><label for="toctree-checkbox-70"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.JobackRecord.__init__.html">feos.cubic.JobackRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.JobackRecord.from_json_str.html">feos.cubic.JobackRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.JobackRecord.to_json_str.html">feos.cubic.JobackRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PureRecord.html">feos.cubic.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-69" name="toctree-checkbox-69" role="switch" type="checkbox"/><label for="toctree-checkbox-69"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PureRecord.html">feos.cubic.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-71" name="toctree-checkbox-71" role="switch" type="checkbox"/><label for="toctree-checkbox-71"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PureRecord.__init__.html">feos.cubic.PureRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PureRecord.from_json_str.html">feos.cubic.PureRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PureRecord.to_json_str.html">feos.cubic.PureRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.html">feos.cubic.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-70" name="toctree-checkbox-70" role="switch" type="checkbox"/><label for="toctree-checkbox-70"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.html">feos.cubic.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-72" name="toctree-checkbox-72" role="switch" type="checkbox"/><label for="toctree-checkbox-72"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.__init__.html">feos.cubic.BinaryRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.from_json.html">feos.cubic.BinaryRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.from_json_str.html">feos.cubic.BinaryRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.BinaryRecord.to_json_str.html">feos.cubic.BinaryRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonRecord.html">feos.cubic.PengRobinsonRecord</a><input class="toctree-checkbox" id="toctree-checkbox-71" name="toctree-checkbox-71" role="switch" type="checkbox"/><label for="toctree-checkbox-71"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonRecord.html">feos.cubic.PengRobinsonRecord</a><input class="toctree-checkbox" id="toctree-checkbox-73" name="toctree-checkbox-73" role="switch" type="checkbox"/><label for="toctree-checkbox-73"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonRecord.__init__.html">feos.cubic.PengRobinsonRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonRecord.from_json_str.html">feos.cubic.PengRobinsonRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonRecord.to_json_str.html">feos.cubic.PengRobinsonRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonParameters.html">feos.cubic.PengRobinsonParameters</a><input class="toctree-checkbox" id="toctree-checkbox-72" name="toctree-checkbox-72" role="switch" type="checkbox"/><label for="toctree-checkbox-72"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonParameters.html">feos.cubic.PengRobinsonParameters</a><input class="toctree-checkbox" id="toctree-checkbox-74" name="toctree-checkbox-74" role="switch" type="checkbox"/><label for="toctree-checkbox-74"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonParameters.__init__.html">feos.cubic.PengRobinsonParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonParameters.from_json.html">feos.cubic.PengRobinsonParameters.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.cubic.PengRobinsonParameters.from_multiple_json.html">feos.cubic.PengRobinsonParameters.from_multiple_json</a></li>
@@ -783,44 +799,45 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/pets.html"><code class="docutils literal notranslate"><span class="pre">feos.pets</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-73" name="toctree-checkbox-73" role="switch" type="checkbox"/><label for="toctree-checkbox-73"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.Identifier.html">feos.pets.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-74" name="toctree-checkbox-74" role="switch" type="checkbox"/><label for="toctree-checkbox-74"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/pets.html"><code class="docutils literal notranslate"><span class="pre">feos.pets</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-75" name="toctree-checkbox-75" role="switch" type="checkbox"/><label for="toctree-checkbox-75"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.Identifier.html">feos.pets.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-76" name="toctree-checkbox-76" role="switch" type="checkbox"/><label for="toctree-checkbox-76"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.Identifier.__init__.html">feos.pets.Identifier.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.Identifier.from_json_str.html">feos.pets.Identifier.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.Identifier.to_json_str.html">feos.pets.Identifier.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.ChemicalRecord.html">feos.pets.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-75" name="toctree-checkbox-75" role="switch" type="checkbox"/><label for="toctree-checkbox-75"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.ChemicalRecord.html">feos.pets.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-77" name="toctree-checkbox-77" role="switch" type="checkbox"/><label for="toctree-checkbox-77"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.ChemicalRecord.__init__.html">feos.pets.ChemicalRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.ChemicalRecord.from_json_str.html">feos.pets.ChemicalRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.ChemicalRecord.to_json_str.html">feos.pets.ChemicalRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.JobackRecord.html">feos.pets.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-76" name="toctree-checkbox-76" role="switch" type="checkbox"/><label for="toctree-checkbox-76"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.JobackRecord.html">feos.pets.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-78" name="toctree-checkbox-78" role="switch" type="checkbox"/><label for="toctree-checkbox-78"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.JobackRecord.__init__.html">feos.pets.JobackRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.JobackRecord.from_json_str.html">feos.pets.JobackRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.JobackRecord.to_json_str.html">feos.pets.JobackRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PureRecord.html">feos.pets.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-77" name="toctree-checkbox-77" role="switch" type="checkbox"/><label for="toctree-checkbox-77"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PureRecord.html">feos.pets.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-79" name="toctree-checkbox-79" role="switch" type="checkbox"/><label for="toctree-checkbox-79"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PureRecord.__init__.html">feos.pets.PureRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PureRecord.from_json_str.html">feos.pets.PureRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PureRecord.to_json_str.html">feos.pets.PureRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.html">feos.pets.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-78" name="toctree-checkbox-78" role="switch" type="checkbox"/><label for="toctree-checkbox-78"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.html">feos.pets.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-80" name="toctree-checkbox-80" role="switch" type="checkbox"/><label for="toctree-checkbox-80"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.__init__.html">feos.pets.BinaryRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.from_json.html">feos.pets.BinaryRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.from_json_str.html">feos.pets.BinaryRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.BinaryRecord.to_json_str.html">feos.pets.BinaryRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PetsRecord.html">feos.pets.PetsRecord</a><input class="toctree-checkbox" id="toctree-checkbox-79" name="toctree-checkbox-79" role="switch" type="checkbox"/><label for="toctree-checkbox-79"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PetsRecord.html">feos.pets.PetsRecord</a><input class="toctree-checkbox" id="toctree-checkbox-81" name="toctree-checkbox-81" role="switch" type="checkbox"/><label for="toctree-checkbox-81"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsRecord.__init__.html">feos.pets.PetsRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsRecord.from_json_str.html">feos.pets.PetsRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsRecord.to_json_str.html">feos.pets.PetsRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PetsParameters.html">feos.pets.PetsParameters</a><input class="toctree-checkbox" id="toctree-checkbox-80" name="toctree-checkbox-80" role="switch" type="checkbox"/><label for="toctree-checkbox-80"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.pets.PetsParameters.html">feos.pets.PetsParameters</a><input class="toctree-checkbox" id="toctree-checkbox-82" name="toctree-checkbox-82" role="switch" type="checkbox"/><label for="toctree-checkbox-82"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsParameters.__init__.html">feos.pets.PetsParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsParameters.from_json.html">feos.pets.PetsParameters.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.pets.PetsParameters.from_lists.html">feos.pets.PetsParameters.from_lists</a></li>
@@ -833,42 +850,43 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/uvtheory.html"><code class="docutils literal notranslate"><span class="pre">feos.uvtheory</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-81" name="toctree-checkbox-81" role="switch" type="checkbox"/><label for="toctree-checkbox-81"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Identifier.html">feos.uvtheory.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-82" name="toctree-checkbox-82" role="switch" type="checkbox"/><label for="toctree-checkbox-82"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/uvtheory.html"><code class="docutils literal notranslate"><span class="pre">feos.uvtheory</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-83" name="toctree-checkbox-83" role="switch" type="checkbox"/><label for="toctree-checkbox-83"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Identifier.html">feos.uvtheory.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-84" name="toctree-checkbox-84" role="switch" type="checkbox"/><label for="toctree-checkbox-84"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Identifier.__init__.html">feos.uvtheory.Identifier.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Identifier.from_json_str.html">feos.uvtheory.Identifier.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Identifier.to_json_str.html">feos.uvtheory.Identifier.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.ChemicalRecord.html">feos.uvtheory.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-83" name="toctree-checkbox-83" role="switch" type="checkbox"/><label for="toctree-checkbox-83"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.ChemicalRecord.html">feos.uvtheory.ChemicalRecord</a><input class="toctree-checkbox" id="toctree-checkbox-85" name="toctree-checkbox-85" role="switch" type="checkbox"/><label for="toctree-checkbox-85"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.ChemicalRecord.__init__.html">feos.uvtheory.ChemicalRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.ChemicalRecord.from_json_str.html">feos.uvtheory.ChemicalRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.ChemicalRecord.to_json_str.html">feos.uvtheory.ChemicalRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.PureRecord.html">feos.uvtheory.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-84" name="toctree-checkbox-84" role="switch" type="checkbox"/><label for="toctree-checkbox-84"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.PureRecord.html">feos.uvtheory.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-86" name="toctree-checkbox-86" role="switch" type="checkbox"/><label for="toctree-checkbox-86"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.PureRecord.__init__.html">feos.uvtheory.PureRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.PureRecord.from_json_str.html">feos.uvtheory.PureRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.PureRecord.to_json_str.html">feos.uvtheory.PureRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.html">feos.uvtheory.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-85" name="toctree-checkbox-85" role="switch" type="checkbox"/><label for="toctree-checkbox-85"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.html">feos.uvtheory.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-87" name="toctree-checkbox-87" role="switch" type="checkbox"/><label for="toctree-checkbox-87"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.__init__.html">feos.uvtheory.BinaryRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.from_json.html">feos.uvtheory.BinaryRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.from_json_str.html">feos.uvtheory.BinaryRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.BinaryRecord.to_json_str.html">feos.uvtheory.BinaryRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Perturbation.html">feos.uvtheory.Perturbation</a><input class="toctree-checkbox" id="toctree-checkbox-86" name="toctree-checkbox-86" role="switch" type="checkbox"/><label for="toctree-checkbox-86"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Perturbation.html">feos.uvtheory.Perturbation</a><input class="toctree-checkbox" id="toctree-checkbox-88" name="toctree-checkbox-88" role="switch" type="checkbox"/><label for="toctree-checkbox-88"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.Perturbation.__init__.html">feos.uvtheory.Perturbation.__init__</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVRecord.html">feos.uvtheory.UVRecord</a><input class="toctree-checkbox" id="toctree-checkbox-87" name="toctree-checkbox-87" role="switch" type="checkbox"/><label for="toctree-checkbox-87"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVRecord.html">feos.uvtheory.UVRecord</a><input class="toctree-checkbox" id="toctree-checkbox-89" name="toctree-checkbox-89" role="switch" type="checkbox"/><label for="toctree-checkbox-89"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVRecord.__init__.html">feos.uvtheory.UVRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVRecord.from_json_str.html">feos.uvtheory.UVRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVRecord.to_json_str.html">feos.uvtheory.UVRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.html">feos.uvtheory.UVParameters</a><input class="toctree-checkbox" id="toctree-checkbox-88" name="toctree-checkbox-88" role="switch" type="checkbox"/><label for="toctree-checkbox-88"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.html">feos.uvtheory.UVParameters</a><input class="toctree-checkbox" id="toctree-checkbox-90" name="toctree-checkbox-90" role="switch" type="checkbox"/><label for="toctree-checkbox-90"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.__init__.html">feos.uvtheory.UVParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.from_json.html">feos.uvtheory.UVParameters.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.from_lists.html">feos.uvtheory.UVParameters.from_lists</a></li>
@@ -876,46 +894,48 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.from_records.html">feos.uvtheory.UVParameters.from_records</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.new_binary.html">feos.uvtheory.UVParameters.new_binary</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.new_pure.html">feos.uvtheory.UVParameters.new_pure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.uvtheory.UVParameters.new_simple.html">feos.uvtheory.UVParameters.new_simple</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/saftvrqmie.html"><code class="docutils literal notranslate"><span class="pre">feos.saftvrqmie</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-89" name="toctree-checkbox-89" role="switch" type="checkbox"/><label for="toctree-checkbox-89"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.FeynmanHibbsOrder.html">feos.saftvrqmie.FeynmanHibbsOrder</a><input class="toctree-checkbox" id="toctree-checkbox-90" name="toctree-checkbox-90" role="switch" type="checkbox"/><label for="toctree-checkbox-90"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../api/saftvrqmie.html"><code class="docutils literal notranslate"><span class="pre">feos.saftvrqmie</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-91" name="toctree-checkbox-91" role="switch" type="checkbox"/><label for="toctree-checkbox-91"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.FeynmanHibbsOrder.html">feos.saftvrqmie.FeynmanHibbsOrder</a><input class="toctree-checkbox" id="toctree-checkbox-92" name="toctree-checkbox-92" role="switch" type="checkbox"/><label for="toctree-checkbox-92"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.FeynmanHibbsOrder.__init__.html">feos.saftvrqmie.FeynmanHibbsOrder.__init__</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.Identifier.html">feos.saftvrqmie.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-91" name="toctree-checkbox-91" role="switch" type="checkbox"/><label for="toctree-checkbox-91"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.Identifier.html">feos.saftvrqmie.Identifier</a><input class="toctree-checkbox" id="toctree-checkbox-93" name="toctree-checkbox-93" role="switch" type="checkbox"/><label for="toctree-checkbox-93"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.Identifier.__init__.html">feos.saftvrqmie.Identifier.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.Identifier.from_json_str.html">feos.saftvrqmie.Identifier.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.Identifier.to_json_str.html">feos.saftvrqmie.Identifier.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.JobackRecord.html">feos.saftvrqmie.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-92" name="toctree-checkbox-92" role="switch" type="checkbox"/><label for="toctree-checkbox-92"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.JobackRecord.html">feos.saftvrqmie.JobackRecord</a><input class="toctree-checkbox" id="toctree-checkbox-94" name="toctree-checkbox-94" role="switch" type="checkbox"/><label for="toctree-checkbox-94"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.JobackRecord.__init__.html">feos.saftvrqmie.JobackRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.JobackRecord.from_json_str.html">feos.saftvrqmie.JobackRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.JobackRecord.to_json_str.html">feos.saftvrqmie.JobackRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.PureRecord.html">feos.saftvrqmie.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-93" name="toctree-checkbox-93" role="switch" type="checkbox"/><label for="toctree-checkbox-93"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.PureRecord.html">feos.saftvrqmie.PureRecord</a><input class="toctree-checkbox" id="toctree-checkbox-95" name="toctree-checkbox-95" role="switch" type="checkbox"/><label for="toctree-checkbox-95"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.PureRecord.__init__.html">feos.saftvrqmie.PureRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.PureRecord.from_json_str.html">feos.saftvrqmie.PureRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.PureRecord.to_json_str.html">feos.saftvrqmie.PureRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.html">feos.saftvrqmie.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-94" name="toctree-checkbox-94" role="switch" type="checkbox"/><label for="toctree-checkbox-94"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.html">feos.saftvrqmie.BinaryRecord</a><input class="toctree-checkbox" id="toctree-checkbox-96" name="toctree-checkbox-96" role="switch" type="checkbox"/><label for="toctree-checkbox-96"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.__init__.html">feos.saftvrqmie.BinaryRecord.__init__</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.from_json.html">feos.saftvrqmie.BinaryRecord.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.from_json_str.html">feos.saftvrqmie.BinaryRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.BinaryRecord.to_json_str.html">feos.saftvrqmie.BinaryRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieRecord.html">feos.saftvrqmie.SaftVRQMieRecord</a><input class="toctree-checkbox" id="toctree-checkbox-95" name="toctree-checkbox-95" role="switch" type="checkbox"/><label for="toctree-checkbox-95"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieRecord.html">feos.saftvrqmie.SaftVRQMieRecord</a><input class="toctree-checkbox" id="toctree-checkbox-97" name="toctree-checkbox-97" role="switch" type="checkbox"/><label for="toctree-checkbox-97"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieRecord.__init__.html">feos.saftvrqmie.SaftVRQMieRecord.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieRecord.from_json_str.html">feos.saftvrqmie.SaftVRQMieRecord.from_json_str</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieRecord.to_json_str.html">feos.saftvrqmie.SaftVRQMieRecord.to_json_str</a></li>
 </ul>
 </li>
-<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieParameters.html">feos.saftvrqmie.SaftVRQMieParameters</a><input class="toctree-checkbox" id="toctree-checkbox-96" name="toctree-checkbox-96" role="switch" type="checkbox"/><label for="toctree-checkbox-96"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l3 has-children"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieParameters.html">feos.saftvrqmie.SaftVRQMieParameters</a><input class="toctree-checkbox" id="toctree-checkbox-98" name="toctree-checkbox-98" role="switch" type="checkbox"/><label for="toctree-checkbox-98"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieParameters.__init__.html">feos.saftvrqmie.SaftVRQMieParameters.__init__</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieParameters.from_json.html">feos.saftvrqmie.SaftVRQMieParameters.from_json</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/generated/feos.saftvrqmie.SaftVRQMieParameters.from_multiple_json.html">feos.saftvrqmie.SaftVRQMieParameters.from_multiple_json</a></li>
@@ -932,8 +952,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Rust</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../rustguide/index.html">Guide</a><input class="toctree-checkbox" id="toctree-checkbox-97" name="toctree-checkbox-97" role="switch" type="checkbox"/><label for="toctree-checkbox-97"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../../rustguide/core/index.html"><code class="docutils literal notranslate"><span class="pre">feos-core</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-98" name="toctree-checkbox-98" role="switch" type="checkbox"/><label for="toctree-checkbox-98"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../rustguide/index.html">Guide</a><input class="toctree-checkbox" id="toctree-checkbox-99" name="toctree-checkbox-99" role="switch" type="checkbox"/><label for="toctree-checkbox-99"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../../rustguide/core/index.html"><code class="docutils literal notranslate"><span class="pre">feos-core</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-100" name="toctree-checkbox-100" role="switch" type="checkbox"/><label for="toctree-checkbox-100"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../../rustguide/core/equation_of_state.html">The <code class="docutils literal notranslate"><span class="pre">EquationOfState</span></code> Trait</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../../rustguide/core/state.html">Thermodynamic States</a></li>
 </ul>
@@ -944,17 +964,20 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Theory</span></p>
 <ul>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/eos/index.html">Equations of state</a><input class="toctree-checkbox" id="toctree-checkbox-99" name="toctree-checkbox-99" role="switch" type="checkbox"/><label for="toctree-checkbox-99"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/eos/index.html">Equations of state</a><input class="toctree-checkbox" id="toctree-checkbox-101" name="toctree-checkbox-101" role="switch" type="checkbox"/><label for="toctree-checkbox-101"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../theory/eos/properties.html">Properties</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/dft/index.html">Classical density functional theory</a><input class="toctree-checkbox" id="toctree-checkbox-100" name="toctree-checkbox-100" role="switch" type="checkbox"/><label for="toctree-checkbox-100"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/dft/index.html">Classical density functional theory</a><input class="toctree-checkbox" id="toctree-checkbox-102" name="toctree-checkbox-102" role="switch" type="checkbox"/><label for="toctree-checkbox-102"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/euler_lagrange_equation.html">Euler-Lagrange equation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/functional_derivatives.html">Functional derivatives</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/solver.html">DFT solvers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/derivatives.html">Derivatives of density profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/enthalpy_of_adsorption.html">Enthalpy of adsorption and the Clausius-Clapeyron relation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../theory/dft/pdgt.html">Predictive density gradient theory</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/models/index.html">Models</a><input class="toctree-checkbox" id="toctree-checkbox-101" name="toctree-checkbox-101" role="switch" type="checkbox"/><label for="toctree-checkbox-101"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../../theory/models/index.html">Models</a><input class="toctree-checkbox" id="toctree-checkbox-103" name="toctree-checkbox-103" role="switch" type="checkbox"/><label for="toctree-checkbox-103"><div class="visually-hidden">Toggle child pages in navigation</div><i class="icon"><svg><use href="#svg-arrow-right"></use></svg></i></label><ul class="simple">
 </ul>
 </li>
 </ul>
@@ -991,264 +1014,7 @@
           </label>
         </div>
         <article role="main">
-          
-<style>
-/* CSS for nbsphinx extension */
-
-/* remove conflicting styling from Sphinx themes */
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt *,
-div.nbinput.container div.input_area pre,
-div.nboutput.container div.output_area pre,
-div.nbinput.container div.input_area .highlight,
-div.nboutput.container div.output_area .highlight {
-    border: none;
-    padding: 0;
-    margin: 0;
-    box-shadow: none;
-}
-
-div.nbinput.container > div[class*=highlight],
-div.nboutput.container > div[class*=highlight] {
-    margin: 0;
-}
-
-div.nbinput.container div.prompt *,
-div.nboutput.container div.prompt * {
-    background: none;
-}
-
-div.nboutput.container div.output_area .highlight,
-div.nboutput.container div.output_area pre {
-    background: unset;
-}
-
-div.nboutput.container div.output_area div.highlight {
-    color: unset;  /* override Pygments text color */
-}
-
-/* avoid gaps between output lines */
-div.nboutput.container div[class*=highlight] pre {
-    line-height: normal;
-}
-
-/* input/output containers */
-div.nbinput.container,
-div.nboutput.container {
-    display: -webkit-flex;
-    display: flex;
-    align-items: flex-start;
-    margin: 0;
-    width: 100%;
-}
-@media (max-width: 540px) {
-    div.nbinput.container,
-    div.nboutput.container {
-        flex-direction: column;
-    }
-}
-
-/* input container */
-div.nbinput.container {
-    padding-top: 5px;
-}
-
-/* last container */
-div.nblast.container {
-    padding-bottom: 5px;
-}
-
-/* input prompt */
-div.nbinput.container div.prompt pre {
-    color: #307FC1;
-}
-
-/* output prompt */
-div.nboutput.container div.prompt pre {
-    color: #BF5B3D;
-}
-
-/* all prompts */
-div.nbinput.container div.prompt,
-div.nboutput.container div.prompt {
-    width: 4.5ex;
-    padding-top: 5px;
-    position: relative;
-    user-select: none;
-}
-
-div.nbinput.container div.prompt > div,
-div.nboutput.container div.prompt > div {
-    position: absolute;
-    right: 0;
-    margin-right: 0.3ex;
-}
-
-@media (max-width: 540px) {
-    div.nbinput.container div.prompt,
-    div.nboutput.container div.prompt {
-        width: unset;
-        text-align: left;
-        padding: 0.4em;
-    }
-    div.nboutput.container div.prompt.empty {
-        padding: 0;
-    }
-
-    div.nbinput.container div.prompt > div,
-    div.nboutput.container div.prompt > div {
-        position: unset;
-    }
-}
-
-/* disable scrollbars and line breaks on prompts */
-div.nbinput.container div.prompt pre,
-div.nboutput.container div.prompt pre {
-    overflow: hidden;
-    white-space: pre;
-}
-
-/* input/output area */
-div.nbinput.container div.input_area,
-div.nboutput.container div.output_area {
-    -webkit-flex: 1;
-    flex: 1;
-    overflow: auto;
-}
-@media (max-width: 540px) {
-    div.nbinput.container div.input_area,
-    div.nboutput.container div.output_area {
-        width: 100%;
-    }
-}
-
-/* input area */
-div.nbinput.container div.input_area {
-    border: 1px solid #e0e0e0;
-    border-radius: 2px;
-    /*background: #f5f5f5;*/
-}
-
-/* override MathJax center alignment in output cells */
-div.nboutput.container div[class*=MathJax] {
-    text-align: left !important;
-}
-
-/* override sphinx.ext.imgmath center alignment in output cells */
-div.nboutput.container div.math p {
-    text-align: left;
-}
-
-/* standard error */
-div.nboutput.container div.output_area.stderr {
-    background: #fdd;
-}
-
-/* ANSI colors */
-.ansi-black-fg { color: #3E424D; }
-.ansi-black-bg { background-color: #3E424D; }
-.ansi-black-intense-fg { color: #282C36; }
-.ansi-black-intense-bg { background-color: #282C36; }
-.ansi-red-fg { color: #E75C58; }
-.ansi-red-bg { background-color: #E75C58; }
-.ansi-red-intense-fg { color: #B22B31; }
-.ansi-red-intense-bg { background-color: #B22B31; }
-.ansi-green-fg { color: #00A250; }
-.ansi-green-bg { background-color: #00A250; }
-.ansi-green-intense-fg { color: #007427; }
-.ansi-green-intense-bg { background-color: #007427; }
-.ansi-yellow-fg { color: #DDB62B; }
-.ansi-yellow-bg { background-color: #DDB62B; }
-.ansi-yellow-intense-fg { color: #B27D12; }
-.ansi-yellow-intense-bg { background-color: #B27D12; }
-.ansi-blue-fg { color: #208FFB; }
-.ansi-blue-bg { background-color: #208FFB; }
-.ansi-blue-intense-fg { color: #0065CA; }
-.ansi-blue-intense-bg { background-color: #0065CA; }
-.ansi-magenta-fg { color: #D160C4; }
-.ansi-magenta-bg { background-color: #D160C4; }
-.ansi-magenta-intense-fg { color: #A03196; }
-.ansi-magenta-intense-bg { background-color: #A03196; }
-.ansi-cyan-fg { color: #60C6C8; }
-.ansi-cyan-bg { background-color: #60C6C8; }
-.ansi-cyan-intense-fg { color: #258F8F; }
-.ansi-cyan-intense-bg { background-color: #258F8F; }
-.ansi-white-fg { color: #C5C1B4; }
-.ansi-white-bg { background-color: #C5C1B4; }
-.ansi-white-intense-fg { color: #A1A6B2; }
-.ansi-white-intense-bg { background-color: #A1A6B2; }
-
-.ansi-default-inverse-fg { color: #FFFFFF; }
-.ansi-default-inverse-bg { background-color: #000000; }
-
-.ansi-bold { font-weight: bold; }
-.ansi-underline { text-decoration: underline; }
-
-
-div.nbinput.container div.input_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight] > pre,
-div.nboutput.container div.output_area div[class*=highlight].math,
-div.nboutput.container div.output_area.rendered_html,
-div.nboutput.container div.output_area > div.output_javascript,
-div.nboutput.container div.output_area:not(.rendered_html) > img{
-    padding: 5px;
-    margin: 0;
-}
-
-/* fix copybtn overflow problem in chromium (needed for 'sphinx_copybutton') */
-div.nbinput.container div.input_area > div[class^='highlight'],
-div.nboutput.container div.output_area > div[class^='highlight']{
-    overflow-y: hidden;
-}
-
-/* hide copybtn icon on prompts (needed for 'sphinx_copybutton') */
-.prompt .copybtn {
-    display: none;
-}
-
-/* Some additional styling taken form the Jupyter notebook CSS */
-.jp-RenderedHTMLCommon table,
-div.rendered_html table {
-  border: none;
-  border-collapse: collapse;
-  border-spacing: 0;
-  color: black;
-  font-size: 12px;
-  table-layout: fixed;
-}
-.jp-RenderedHTMLCommon thead,
-div.rendered_html thead {
-  border-bottom: 1px solid black;
-  vertical-align: bottom;
-}
-.jp-RenderedHTMLCommon tr,
-.jp-RenderedHTMLCommon th,
-.jp-RenderedHTMLCommon td,
-div.rendered_html tr,
-div.rendered_html th,
-div.rendered_html td {
-  text-align: right;
-  vertical-align: middle;
-  padding: 0.5em 0.5em;
-  line-height: normal;
-  white-space: normal;
-  max-width: none;
-  border: none;
-}
-.jp-RenderedHTMLCommon th,
-div.rendered_html th {
-  font-weight: bold;
-}
-.jp-RenderedHTMLCommon tbody tr:nth-child(odd),
-div.rendered_html tbody tr:nth-child(odd) {
-  background: #f5f5f5;
-}
-.jp-RenderedHTMLCommon tbody tr:hover,
-div.rendered_html tbody tr:hover {
-  background: rgba(66, 165, 245, 0.2);
-}
-</style>
-<section id="Pure-substance-phase-diagrams">
+          <section id="Pure-substance-phase-diagrams">
 <h1>Pure substance phase diagrams<a class="headerlink" href="#Pure-substance-phase-diagrams" title="Permalink to this heading">#</a></h1>
 <section id="Goal-of-this-notebook">
 <h2>Goal of this notebook<a class="headerlink" href="#Goal-of-this-notebook" title="Permalink to this heading">#</a></h2>
@@ -1256,19 +1022,8 @@ div.rendered_html tbody tr:hover {
 <li><p>Learn how to generate and work with phase diagrams.</p></li>
 <li><p>Learn what <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> objects are and how to use them.</p></li>
 </ul>
-</section>
-<section id="Important-objects-from-\text{FeO}_\text{s}">
-<h2>Important objects from <span class="math notranslate nohighlight">\(\text{FeO}_\text{s}\)</span><a class="headerlink" href="#Important-objects-from-\text{FeO}_\text{s}" title="Permalink to this heading">#</a></h2>
-<p>In the following we need:</p>
-<ul class="simple">
-<li><p>SI units via the <code class="docutils literal notranslate"><span class="pre">feos.si</span></code> module,</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PcSaftParameters</span></code> and <code class="docutils literal notranslate"><span class="pre">Contributions</span></code> objects from the <code class="docutils literal notranslate"><span class="pre">feos.pcsaft</span></code> module, and</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PcSaft</span></code>, <code class="docutils literal notranslate"><span class="pre">State</span></code>, <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> and <code class="docutils literal notranslate"><span class="pre">PhaseDiagramPure</span></code> objects from <code class="docutils literal notranslate"><span class="pre">feos.pcsaft.eos</span></code> modules.</p></li>
-<li><p>Furthermore, we use <code class="docutils literal notranslate"><span class="pre">numpy</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas</span></code> for arrays and <code class="docutils literal notranslate"><span class="pre">DataFrames</span></code>, respectively,</p></li>
-<li><p>and <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code> and <code class="docutils literal notranslate"><span class="pre">seaborn</span></code> for visualization.</p></li>
-</ul>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">feos.si</span> <span class="kn">import</span> <span class="o">*</span>
@@ -1291,7 +1046,7 @@ div.rendered_html tbody tr:hover {
 <section id="Read-parameters-from-json-for-a-single-substance-and-generate-PcSaft-object">
 <h2>Read parameters from json for a single substance and generate <code class="docutils literal notranslate"><span class="pre">PcSaft</span></code> object<a class="headerlink" href="#Read-parameters-from-json-for-a-single-substance-and-generate-PcSaft-object" title="Permalink to this heading">#</a></h2>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">parameters</span> <span class="o">=</span> <span class="n">PcSaftParameters</span><span class="o">.</span><span class="n">from_json</span><span class="p">(</span>
@@ -1303,7 +1058,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1361,9 +1116,9 @@ div.rendered_html tbody tr:hover {
 <p>The points are evenly distributed between the defined minimum temperature and the critical temperature which is either computed (default) or can be provided via the <code class="docutils literal notranslate"><span class="pre">critical_temperature</span></code> argument.</p>
 <p>Furthermore, we can define options for the numerics: - <code class="docutils literal notranslate"><span class="pre">max_iter</span></code> to define the maximum number of iterations for the phase equilibrium calculations, and - <code class="docutils literal notranslate"><span class="pre">tol</span></code> to set the tolerance used for deterimation of phase equilibria.</p>
 <p>A <code class="docutils literal notranslate"><span class="pre">Verbosity</span></code> object can be provided via the <code class="docutils literal notranslate"><span class="pre">verbosity</span></code> argument to print intermediate calculations to the screen.</p>
-<p>Starting from the minimum temperature, phase equilibria are computed in sequence using prior results (i.e. at prior temperature) as input for the next iteration.</p>
+<p>Starting from the minimum temperature, phase equilibria are computed in sequence using prior results (i.e. at prior temperature) as input for the next iteration.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phase_diagram</span> <span class="o">=</span> <span class="n">PhaseDiagram</span><span class="o">.</span><span class="n">pure</span><span class="p">(</span><span class="n">pcsaft</span><span class="p">,</span> <span class="n">min_temperature</span><span class="o">=</span><span class="mi">200</span><span class="o">*</span><span class="n">KELVIN</span><span class="p">,</span> <span class="n">npoints</span><span class="o">=</span><span class="mi">501</span><span class="p">)</span>
@@ -1371,7 +1126,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">phase_diagram</span><span class="o">.</span><span class="n">vapor</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -1379,7 +1134,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1413,7 +1168,7 @@ div.rendered_html tbody tr:hover {
 <p>The <code class="docutils literal notranslate"><span class="pre">PhaseDiagramPure</span></code> object contains some physical properties (such as densities, temperatures and pressures) as well as the <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> objects at each temperature.</p>
 <p>Before we take a look at these objects, a useful tool when working with phase diagrams is the <code class="docutils literal notranslate"><span class="pre">to_dict</span></code> method. It generates a Python dictionary of some properties (with hard-coded units, see the docstring of <code class="docutils literal notranslate"><span class="pre">to_dict</span></code>). This dictionary can readily be used to generate a <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">phase_diagram</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
@@ -1422,7 +1177,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="output_area rendered_html docutils container">
@@ -1444,78 +1199,78 @@ div.rendered_html tbody tr:hover {
   <thead>
     <tr style="text-align: right;">
       <th></th>
-      <th>density liquid</th>
-      <th>molar enthalpy liquid</th>
-      <th>density vapor</th>
-      <th>temperature</th>
-      <th>molar entropy liquid</th>
       <th>molar enthalpy vapor</th>
+      <th>temperature</th>
+      <th>density liquid</th>
+      <th>density vapor</th>
+      <th>molar enthalpy liquid</th>
       <th>pressure</th>
       <th>molar entropy vapor</th>
+      <th>molar entropy liquid</th>
     </tr>
   </thead>
   <tbody>
     <tr>
       <th>0</th>
-      <td>8539.589591</td>
-      <td>-54.057307</td>
-      <td>0.012216</td>
-      <td>200.000000</td>
-      <td>-0.183475</td>
       <td>-16.735400</td>
+      <td>200.000000</td>
+      <td>8539.589591</td>
+      <td>0.012216</td>
+      <td>-54.057307</td>
       <td>20.312763</td>
       <td>0.003135</td>
+      <td>-0.183475</td>
     </tr>
     <tr>
       <th>1</th>
-      <td>8532.663964</td>
-      <td>-53.920803</td>
-      <td>0.013078</td>
-      <td>200.638669</td>
-      <td>-0.182794</td>
       <td>-16.639176</td>
+      <td>200.638669</td>
+      <td>8532.663964</td>
+      <td>0.013078</td>
+      <td>-53.920803</td>
       <td>21.816282</td>
       <td>0.003021</td>
+      <td>-0.182794</td>
     </tr>
     <tr>
       <th>2</th>
-      <td>8525.749142</td>
-      <td>-53.784188</td>
-      <td>0.013994</td>
-      <td>201.277337</td>
-      <td>-0.182114</td>
       <td>-16.542786</td>
+      <td>201.277337</td>
+      <td>8525.749142</td>
+      <td>0.013994</td>
+      <td>-53.784188</td>
       <td>23.418684</td>
       <td>0.002912</td>
+      <td>-0.182114</td>
     </tr>
     <tr>
       <th>3</th>
-      <td>8518.845002</td>
-      <td>-53.647463</td>
-      <td>0.014967</td>
-      <td>201.916006</td>
-      <td>-0.181436</td>
       <td>-16.446230</td>
+      <td>201.916006</td>
+      <td>8518.845002</td>
+      <td>0.014967</td>
+      <td>-53.647463</td>
       <td>25.125608</td>
       <td>0.002806</td>
+      <td>-0.181436</td>
     </tr>
     <tr>
       <th>4</th>
-      <td>8511.951422</td>
-      <td>-53.510626</td>
-      <td>0.015999</td>
-      <td>202.554674</td>
-      <td>-0.180759</td>
       <td>-16.349508</td>
+      <td>202.554674</td>
+      <td>8511.951422</td>
+      <td>0.015999</td>
+      <td>-53.510626</td>
       <td>26.942961</td>
       <td>0.002703</td>
+      <td>-0.180759</td>
     </tr>
   </tbody>
 </table>
 </div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
@@ -1556,7 +1311,7 @@ div.rendered_html tbody tr:hover {
 <h2>The <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> object<a class="headerlink" href="#The-PhaseEquilibrium-object" title="Permalink to this heading">#</a></h2>
 <p>A <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> object contains two thermodynamic states (<code class="docutils literal notranslate"><span class="pre">State</span></code> objects) that are in thermal, mechanical and chemical equilibrium. The <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium.pure</span></code> constructor can be used to compute a phase equilibrium for a single substance. We have to provide the equation of state and either temperature or pressure. Optionally, we can also provide <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> object which can be used as starting point for the calculation which possibly speeds up the computation.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">vle</span> <span class="o">=</span> <span class="n">PhaseEquilibrium</span><span class="o">.</span><span class="n">pure</span><span class="p">(</span>
@@ -1568,7 +1323,7 @@ div.rendered_html tbody tr:hover {
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1596,7 +1351,7 @@ div.rendered_html tbody tr:hover {
 </div>
 <p>The two equilibrium states can be extracted via the <code class="docutils literal notranslate"><span class="pre">liquid</span></code> and <code class="docutils literal notranslate"><span class="pre">vapor</span></code> getters, respectively. Returned are <code class="docutils literal notranslate"><span class="pre">State</span></code> objects, for which we can now compute any property that is available for the <code class="docutils literal notranslate"><span class="pre">State</span></code> object and the given equation of state.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">liquid</span> <span class="o">=</span> <span class="n">vle</span><span class="o">.</span><span class="n">liquid</span>
@@ -1624,7 +1379,7 @@ enthalpy of vaporization h_lv (T = 300 K) = 365.83 kJ/kg
 </ul>
 <p>methods. Note that these methods return lists (even for pure substance systems) where each entry contains the pure substance property.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">PhaseEquilibrium</span><span class="o">.</span><span class="n">boiling_temperature</span><span class="p">(</span><span class="n">pcsaft</span><span class="p">,</span> <span class="n">liquid</span><span class="o">.</span><span class="n">pressure</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
@@ -1632,7 +1387,7 @@ enthalpy of vaporization h_lv (T = 300 K) = 365.83 kJ/kg
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1647,7 +1402,7 @@ $300\,\mathrm{K}$</div></div>
 <p>Once a <code class="docutils literal notranslate"><span class="pre">PhaseDiagram</span></code> object is created, we can access all underlying <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> objects via the <code class="docutils literal notranslate"><span class="pre">states</span></code> field. In the following cell, we compute the enthalpy of vaporization by iterating through all states and calling the <code class="docutils literal notranslate"><span class="pre">specific_enthalpy</span></code> method on the vapor and liquid states of the <code class="docutils literal notranslate"><span class="pre">PhaseEquilibrium</span></code> object, respectively.</p>
 <p>Note that this is merely an example to show how to compute any property of the states. The total value of enthalpy of vaporization may not be correct, depending on the ideal gas model used.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Add enthalpy of vaporization to dataframe</span>
@@ -1660,7 +1415,7 @@ $300\,\mathrm{K}$</div></div>
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">6</span><span class="p">))</span>
@@ -1743,7 +1498,6 @@ $300\,\mathrm{K}$</div></div>
             <ul>
 <li><a class="reference internal" href="#">Pure substance phase diagrams</a><ul>
 <li><a class="reference internal" href="#Goal-of-this-notebook">Goal of this notebook</a></li>
-<li><a class="reference internal" href="#Important-objects-from-\text{FeO}_\text{s}">Important objects from <span class="math notranslate nohighlight">\(\text{FeO}_\text{s}\)</span></a></li>
 <li><a class="reference internal" href="#Read-parameters-from-json-for-a-single-substance-and-generate-PcSaft-object">Read parameters from json for a single substance and generate <code class="docutils literal notranslate"><span class="pre">PcSaft</span></code> object</a></li>
 <li><a class="reference internal" href="#The-PhaseDiagram-object">The <code class="docutils literal notranslate"><span class="pre">PhaseDiagram</span></code> object</a><ul>
 <li><a class="reference internal" href="#Stored-information">Stored information</a></li>
