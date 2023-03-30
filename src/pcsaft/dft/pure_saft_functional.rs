@@ -20,7 +20,7 @@ const N0_CUTOFF: f64 = 1e-9;
 
 #[derive(Clone)]
 pub struct PureFMTAssocFunctional {
-    parameters: Arc<PcSaftParameters>,
+    pub parameters: Arc<PcSaftParameters>,
     version: FMTVersion,
 }
 
@@ -154,7 +154,7 @@ impl fmt::Display for PureFMTAssocFunctional {
 
 #[derive(Clone)]
 pub struct PureChainFunctional {
-    parameters: Arc<PcSaftParameters>,
+    pub parameters: Arc<PcSaftParameters>,
 }
 
 impl PureChainFunctional {
@@ -206,7 +206,7 @@ impl fmt::Display for PureChainFunctional {
 
 #[derive(Clone)]
 pub struct PureAttFunctional {
-    parameters: Arc<PcSaftParameters>,
+    pub parameters: Arc<PcSaftParameters>,
 }
 
 impl PureAttFunctional {
