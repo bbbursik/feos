@@ -49,11 +49,13 @@ pub mod estimator;
 pub mod association;
 pub mod hard_sphere;
 
+
 // models
 #[cfg(feature = "gc_pcsaft")]
 pub mod gc_pcsaft;
 #[cfg(feature = "pcsaft")]
 pub mod pcsaft;
+pub use pcsaft::parameters::utils;
 #[cfg(feature = "pets")]
 pub mod pets;
 #[cfg(feature = "saftvrqmie")]

@@ -269,7 +269,7 @@ impl AssociationParameters {
 /// Implementation of the SAFT association Helmholtz energy
 /// contribution and functional.
 pub struct Association<P> {
-    parameters: Arc<P>,
+    pub parameters: Arc<P>,
     association_parameters: AssociationParameters,
     max_iter: usize,
     tol: f64,

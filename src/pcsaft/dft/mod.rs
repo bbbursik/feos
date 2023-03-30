@@ -13,12 +13,13 @@ use num_traits::One;
 use std::f64::consts::FRAC_PI_6;
 use std::sync::Arc;
 
-mod dispersion;
-mod hard_chain;
+pub mod dispersion;
+pub mod hard_chain;
 mod polar;
-mod pure_saft_functional;
-use dispersion::AttractiveFunctional;
-use hard_chain::ChainFunctional;
+pub mod pure_saft_functional;
+pub use dispersion::AttractiveFunctional;
+pub use dispersion::PSI_DFT;
+pub use hard_chain::ChainFunctional;
 use pure_saft_functional::*;
 
 /// PC-SAFT Helmholtz energy functional.

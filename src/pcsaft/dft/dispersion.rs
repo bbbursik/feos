@@ -13,13 +13,13 @@ use std::fmt;
 use std::sync::Arc;
 
 /// psi Parameter for DFT (Sauer2017)
-const PSI_DFT: f64 = 1.3862;
+pub const PSI_DFT: f64 = 1.3862;
 /// psi Parameter for pDGT (Rehner2018)
 const PSI_PDGT: f64 = 1.3286;
 
 #[derive(Clone)]
 pub struct AttractiveFunctional {
-    parameters: Arc<PcSaftParameters>,
+    pub parameters: Arc<PcSaftParameters>,
 }
 
 impl AttractiveFunctional {

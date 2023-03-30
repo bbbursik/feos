@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct ChainFunctional {
-    parameters: Arc<PcSaftParameters>,
+    pub parameters: Arc<PcSaftParameters>,
 }
 
 impl ChainFunctional {

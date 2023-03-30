@@ -5,17 +5,17 @@
 #![allow(deprecated)]
 
 pub mod adsorption;
-mod convolver;
-mod functional;
+pub mod convolver;
+pub mod functional;
 mod functional_contribution;
 mod geometry;
 mod ideal_chain_contribution;
 pub mod interface;
 mod pdgt;
-mod profile;
+pub mod profile;
 pub mod solvation;
 mod solver;
-mod weight_functions;
+pub mod weight_functions;
 
 pub use convolver::{Convolver, ConvolverFFT};
 pub use functional::{HelmholtzEnergyFunctional, MoleculeShape, DFT};

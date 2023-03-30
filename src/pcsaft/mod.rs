@@ -7,11 +7,11 @@
 #[cfg(feature = "dft")]
 mod dft;
 mod eos;
-pub(crate) mod parameters;
+pub mod parameters;
 
 #[cfg(feature = "dft")]
-pub use dft::PcSaftFunctional;
-pub use eos::{DQVariants, PcSaft, PcSaftOptions};
+pub use dft::{PcSaftFunctional, AttractiveFunctional, ChainFunctional, PSI_DFT, pure_saft_functional};
+pub use eos::{DQVariants, PcSaft, PcSaftOptions, omega11, omega22};
 pub use parameters::{PcSaftBinaryRecord, PcSaftParameters, PcSaftRecord};
 
 #[cfg(feature = "python")]
