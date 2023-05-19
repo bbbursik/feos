@@ -207,13 +207,37 @@ where
             density * SIUnit::reference_density()
         };
 
+        /////////////// Exchange specification to TotalMoles --> need to calculate total moles first
+        let rho = density.to_reduced(SIUnit::reference_density())?;
+        // let moles = integrate_reduced_comp(&rho);
+        let integration_weights = grid.integration_weights();
+
+        let moles = Array1::from_shape_fn(rho.shape()[0], |i| {
+            for (j, w) in integration_weights.clone().into_iter().enumerate() {
+                for mut l in rho
+                    .index_axis(Axis_nd(0), i)
+                    .to_owned()
+                    .lanes_mut(Axis_nd(j))
+                {
+                    l.mul_assign(w);
+                }
+            }
+            rho.index_axis(Axis_nd(0), i).sum()
+        });
+
+        let total_moles = moles.sum();
+        dbg!(total_moles);
+
         Ok(Self {
             grid,
             convolver,
             dft: bulk.eos.clone(),
             temperature: bulk.temperature,
             density,
-            specification: Arc::new(DFTSpecifications::ChemicalPotential),
+            specification: Arc::new(DFTSpecifications::TotalMoles {
+                total_moles: total_moles,
+            }),
+            // specification: Arc::new(DFTSpecifications::ChemicalPotential),
             external_potential,
             bulk: bulk.clone(),
             solver_log: None,
