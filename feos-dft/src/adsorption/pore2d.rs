@@ -1,5 +1,7 @@
 use super::{FluidParameters, PoreProfile, PoreSpecification};
-use crate::{Axis, ConvolverFFT, DFTProfile, Grid, HelmholtzEnergyFunctional, DFT};
+use crate::{
+    Axis, ConvolverFFT, DFTProfile, DFTSpecifications, Grid, HelmholtzEnergyFunctional, DFT,
+};
 use feos_core::{EosResult, EosUnit, State};
 use ndarray::{Array3, Ix2};
 use quantity::si::{SIArray3, SINumber, SIUnit};
@@ -43,8 +45,17 @@ impl PoreSpecification<Ix2> for Pore2D {
         let weight_functions = dft.weight_functions(t);
         let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
 
+        /////////////////////////
+        // Initialize DFTProfile
+        let mut profile =
+            DFTProfile::new(grid, convolver, bulk, external_potential.cloned(), density)?;
+
+        // specify the specification
+        profile.specification = DFTSpecifications::total_moles_from_profile(&profile)?;
+
         Ok(PoreProfile {
-            profile: DFTProfile::new(grid, convolver, bulk, external_potential.cloned(), density)?,
+            // profile: DFTProfile::new(grid, convolver, bulk, external_potential.cloned(), density)?,
+            profile: profile,
             grand_potential: None,
             interfacial_tension: None,
         })
