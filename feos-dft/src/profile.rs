@@ -87,13 +87,11 @@ impl<D: Dimension, F: HelmholtzEnergyFunctional> DFTSpecification<D, F> for DFTS
     ) -> EosResult<Array1<f64>> {
         Ok(match self {
             Self::ChemicalPotential => {
-                println!("Using chemical potential");
                 bulk_density.clone()
             }
             Self::Moles { moles } => moles / z,
             Self::TotalMoles { total_moles } => {
-                println!("Using total moles");
-                bulk_density * *total_moles / (bulk_density * z).sum()
+                bulk_density * *total_moles / z.sum()
             }
         })
     }
