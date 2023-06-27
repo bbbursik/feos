@@ -198,9 +198,10 @@ impl<N: DualNum<f64> + ScalarOperand> FunctionalContributionDual<N> for PureChai
         lambda
             .iter_mut()
             .zip(rho.into_iter())
-            .for_each(|(mut l, &d)| {
+            .for_each(|(l, &d)| {
                 if d.re() < 1e-8 {
-                    *l = d;
+                    *l = d + N::from(f64::EPSILON);
+                    // println!("Using lambda=rho for small densities in chain functional ");
                 }
             });
 

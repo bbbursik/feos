@@ -552,6 +552,38 @@ pub mod utils {
         Arc::new(PcSaftParameters::new_pure(propane_record))
     }
 
+    pub fn methane_parameters() -> Arc<PcSaftParameters> {
+        let methane_json = r#"
+        {
+            "identifier": {
+                "cas": "74-82-8",
+                "name": "methane",
+                "iupac_name": "methane",
+                "smiles": "C",
+                "inchi": "InChI=1S/CH4/h1H4",
+                "formula": "CH4"
+            },
+            "molarweight": 16.043,
+            "model_record": {
+                "m": 1.0,
+                "sigma": 3.7039,
+                "epsilon_k": 150.03,
+                "viscosity": [
+                    -0.0595,
+                    -0.8908,
+                    -0.0348,
+                    -0.0177
+                ]
+            }
+        }"#;
+        let methane_record: PureRecord<PcSaftRecord, JobackRecord> =
+            serde_json::from_str(methane_json).expect("Unable to parse json.");
+        Arc::new(PcSaftParameters::new_pure(methane_record))
+    }
+
+
+
+
     pub fn carbon_dioxide_parameters() -> PcSaftParameters {
         let co2_json = r#"
         {
