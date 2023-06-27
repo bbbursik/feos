@@ -186,14 +186,28 @@ impl<N: DualNum<f64> + ScalarOperand> FunctionalContributionDual<N> for PureChai
         _: N,
         weighted_densities: ArrayView2<N>,
     ) -> EosResult<Array1<N>> {
+        // this is a try to remove the problems with density inside the wall with very low values
         let rho = weighted_densities.index_axis(Axis(0), 0);
+        // .map(|&l| if l.re() > 1.0e-8 { l } else { l * 0.0 } + N::from(f64::EPSILON));
+
         // negative lambdas lead to nan, therefore the absolute value is used
-        let lambda = weighted_densities
+        let mut lambda = weighted_densities
             .index_axis(Axis(0), 1)
             .map(|&l| if l.re() < 0.0 { -l } else { l } + N::from(f64::EPSILON));
+
+        lambda
+            .iter_mut()
+            .zip(rho.into_iter())
+            .for_each(|(mut l, &d)| {
+                if d.re() < 1e-8 {
+                    *l = d;
+                }
+            });
+
         let eta = weighted_densities.index_axis(Axis(0), 2);
 
         let y = eta.mapv(|eta| (eta * 0.5 - 1.0) / (eta - 1.0).powi(3));
+
         Ok(-(y * lambda).mapv(|x| (x.ln() - 1.0) * (self.parameters.m[0] - 1.0)) * rho)
     }
 }
