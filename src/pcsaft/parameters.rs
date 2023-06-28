@@ -625,9 +625,6 @@ pub mod utils {
         Arc::new(PcSaftParameters::new_pure(methane_record))
     }
 
-
-
-
     pub fn carbon_dioxide_parameters() -> PcSaftParameters {
         let co2_json = r#"
         {

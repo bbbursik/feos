@@ -188,15 +188,12 @@ impl<N: DualNum<f64> + Copy + ScalarOperand> FunctionalContributionDual<N> for P
             .index_axis(Axis(0), 1)
             .map(|&l| if l.re() < 0.0 { -l } else { l } + N::from(f64::EPSILON));
 
-        lambda
-            .iter_mut()
-            .zip(rho.into_iter())
-            .for_each(|(l, &d)| {
-                if d.re() < 1e-8 {
-                    *l = d + N::from(f64::EPSILON);
-                    // println!("Using lambda=rho for small densities in chain functional ");
-                }
-            });
+        lambda.iter_mut().zip(rho.into_iter()).for_each(|(l, &d)| {
+            if d.re() < 1e-8 {
+                *l = d + N::from(f64::EPSILON);
+                // println!("Using lambda=rho for small densities in chain functional ");
+            }
+        });
 
         let eta = weighted_densities.index_axis(Axis(0), 2);
 
