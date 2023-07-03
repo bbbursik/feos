@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Packaging
 - Updated `num-dual` dependency to 0.7. [#137](https://github.com/feos-org/feos/pull/137)
 
+### Changed
+- Changed constructors of `Parameter` trait to return `Result`s. [#161](https://github.com/feos-org/feos/pull/161)
+
 ## [0.4.2] - 2023-04-03
 ### Fixed
 - Fixed a wrong reference state in the implementation of the Peng-Robinson equation of state. [#151](https://github.com/feos-org/feos/pull/151)

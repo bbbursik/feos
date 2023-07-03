@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Packaging
 - Updated `num-dual` dependency to 0.7. [#137](https://github.com/feos-org/feos/pull/137)
 
+### Changed
+- Adjusted all models' implementation of the `Parameter` trait which now requires `Result`s in some methods. [#161](https://github.com/feos-org/feos/pull/161)
+
 ## [0.4.3] - 2023-03-20
 - Python only: Release the changes introduced in `feos-core` 0.4.2.
 
