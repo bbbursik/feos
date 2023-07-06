@@ -190,7 +190,7 @@ impl<N: DualNum<f64> + Copy + ScalarOperand> FunctionalContributionDual<N> for P
 
         lambda.iter_mut().zip(rho.into_iter()).for_each(|(l, &d)| {
             if l.re() < 1e-8 {
-                *l = d + N::from(f64::EPSILON);
+                *l = d;// + N::from(f64::EPSILON);
                 // println!("Using lambda=rho for small densities in chain functional ");
             }
         });
