@@ -181,20 +181,25 @@ impl<N: DualNum<f64> + Copy + ScalarOperand> FunctionalContributionDual<N> for P
     ) -> EosResult<Array1<N>> {
         // this is a try to remove the problems with density inside the wall with very low values
         let rho = weighted_densities.index_axis(Axis(0), 0);
-        // .map(|&l| if l.re() > 1.0e-8 { l } else { l * 0.0 } + N::from(f64::EPSILON));
 
         // negative lambdas lead to nan, therefore the absolute value is used
         let mut lambda = weighted_densities
             .index_axis(Axis(0), 1)
             .map(|&l| if l.re() < 0.0 { -l } else { l } + N::from(f64::EPSILON));
 
+        // println!("Lambda before {}", lambda);
         lambda.iter_mut().zip(rho.into_iter()).for_each(|(l, &d)| {
-            // if l.re() < 1e-8 {
+            if l.re() < 1e-7 {
             //     *l = d;// + N::from(f64::EPSILON);
-            //     // println!("Using lambda=rho for small densities in chain functional ");
-            // }
-            *l = *l - ( *l  - d ) * ((*l - 1.0e-8) * 5.0e-8).tanh(); 
+            //     // println!("Using lambda=rho for small densities in chain functional ");  
+                *l = *l - ( *l  - d ) * (-(((*l - 1.0e-8) * 5.0e8).tanh())/2.0 + 0.5); 
+
+                if l.re() < 0.0 { *l = -*l + N::from(f64::EPSILON)} else { *l = *l + N::from(f64::EPSILON)};
+            }
+
         });
+
+        // println!("Lambda after {}", lambda);
 
         let eta = weighted_densities.index_axis(Axis(0), 2);
 
