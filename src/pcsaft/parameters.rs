@@ -811,113 +811,94 @@ pub mod utils {
     }
 
     pub fn dodecane_nitrogen_parameters() -> Arc<PcSaftParameters> {
-        !unimplemented!();
-        //     let binary_json = r#"[
-        //     {
-        //         "identifier": {
-        //             "cas": "112-40-3",
-        //             "name": "dodecane",
-        //             "iupac_name": "dodecane",
-        //             "smiles": "CCCCCCCCCCCC",
-        //             "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
-        //             "formula": "C12H26"
-        //         },
-        //         "model_record": {
-        //             "m": 5.305758999999999,
-        //             "sigma": 3.895892,
-        //             "epsilon_k": 249.2145,
-        //             "viscosity": [
-        //                 -1.6719,
-        //                 -3.39020393,
-        //                 -0.6956429590000001,
-        //                 -0.154563667
-        //             ],
-        //             "diffusion": [
-        //                 -1.709976456320196,
-        //                 0.4350370700652692,
-        //                 0.3567181896779805,
-        //                 0.0,
-        //                 0.0
-        //             ]
-        //         },
-        //         "molarweight": 170.3374
-        //     },
-        //     {
-        //         "identifier": {
-        //             "cas": "7727-37-9",
-        //             "name": "nitrogen",
-        //             "iupac_name": "molecular nitrogen",
-        //             "smiles": "N#N",
-        //             "inchi": "InChI=1/N2/c1-2",
-        //             "formula": "N2"
-        //         },
-        //         "model_record": {
-        //             "m": 1.1504,
-        //             "sigma": 3.3848,
-        //             "epsilon_k": 91.4,
-        //             "q": 1.43,
-        //             "viscosity": [
-        //                 -0.196376646,
-        //                 -0.9460855,
-        //                 -0.0309718769,
-        //                 -0.0303367687
-        //             ],
-        //             "diffusion": [
-        //                 -0.12855765455212295,
-        //                 0.24885131958296933,
-        //                 0.08052800000000002,
-        //                 0.0,
-        //                 0.0
-        //             ]
-        //         },
-        //         "molarweight": 28.0134
-        //     }
-        //     ]"#;
-        //     let kij_json = r#"[
-        //     {
-        //       "id1": {
-        //               "cas": "7727-37-9",
-        //               "name": "nitrogen",
-        //               "iupac_name": "molecular nitrogen",
-        //               "smiles": "N#N",
-        //               "inchi": "InChI=1/N2/c1-2",
-        //               "formula": "N2"
-        //           },
-        //       "id2": {
-        //               "cas": "112-40-3",
-        //               "name": "dodecane",
-        //               "iupac_name": "dodecane",
-        //               "smiles": "CCCCCCCCCCCC",
-        //               "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
-        //               "formula": "C12H26"
-        //           },
-        //       "k_ij": 0.1661
-        //     },
-        //     {
-        //       "id1": {
-        //               "cas": "7727-37-9",
-        //               "name": "nitrogen",
-        //               "iupac_name": "molecular nitrogen",
-        //               "smiles": "N#N",
-        //               "inchi": "InChI=1/N2/c1-2",
-        //               "formula": "N2"
-        //           },
-        //       "id2": {
-        //               "cas": "74-98-6",
-        //               "name": "propane",
-        //               "iupac_name": "propane",
-        //               "smiles": "CCC",
-        //               "inchi": "InChI=1/C3H8/c1-3-2/h3H2,1-2H3",
-        //               "formula": "C3H8"
-        //           },
-        //       "k_ij": 0.02512
-        //     }
-        //   ]"#;
-        //     let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
-        //         serde_json::from_str(binary_json).expect("Unable to parse json.");
-        //     let kij_record: Vec<BinaryRecord<Identifier, f64>> =
-        //         serde_json::from_str(kij_json).expect("Unable to parse binary json.");
-        //     PcSaftParameters::from_records(binary_record, Some(kij_record))
+            let binary_json = r#"[
+            {
+                "identifier": {
+                    "cas": "112-40-3",
+                    "name": "dodecane",
+                    "iupac_name": "dodecane",
+                    "smiles": "CCCCCCCCCCCC",
+                    "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
+                    "formula": "C12H26"
+                },
+                "model_record": {
+                    "m": 5.305758999999999,
+                    "sigma": 3.895892,
+                    "epsilon_k": 249.2145,
+                    "viscosity": [
+                        -1.6719,
+                        -3.39020393,
+                        -0.6956429590000001,
+                        -0.154563667
+                    ],
+                    "diffusion": [
+                        -1.709976456320196,
+                        0.4350370700652692,
+                        0.3567181896779805,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "molarweight": 170.3374
+            },
+            {
+                "identifier": {
+                    "cas": "7727-37-9",
+                    "name": "nitrogen",
+                    "iupac_name": "molecular nitrogen",
+                    "smiles": "N#N",
+                    "inchi": "InChI=1/N2/c1-2",
+                    "formula": "N2"
+                },
+                "model_record": {
+                    "m": 1.1504,
+                    "sigma": 3.3848,
+                    "epsilon_k": 91.4,
+                    "q": 1.43,
+                    "viscosity": [
+                        -0.196376646,
+                        -0.9460855,
+                        -0.0309718769,
+                        -0.0303367687
+                    ],
+                    "diffusion": [
+                        -0.12855765455212295,
+                        0.24885131958296933,
+                        0.08052800000000002,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "molarweight": 28.0134
+            }
+            ]"#;
+            let kij_json = r#"[
+            {
+              "id1": {
+                      "cas": "7727-37-9",
+                      "name": "nitrogen",
+                      "iupac_name": "molecular nitrogen",
+                      "smiles": "N#N",
+                      "inchi": "InChI=1/N2/c1-2",
+                      "formula": "N2"
+                  },
+              "id2": {
+                      "cas": "112-40-3",
+                      "name": "dodecane",
+                      "iupac_name": "dodecane",
+                      "smiles": "CCCCCCCCCCCC",
+                      "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
+                      "formula": "C12H26"
+                  },
+              "k_ij": 0.1661
+            }
+          ]"#;
+            let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+                serde_json::from_str(binary_json).expect("Unable to parse json.");
+            let kij = 0.1661;
+            Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into()) ))
+
+            // Arc::new(PcSaftParameters::new_binary(binary_record, Some(PcSaftBinaryRecord { k_ij: 0.1661 })))
     }
 
     #[test]
