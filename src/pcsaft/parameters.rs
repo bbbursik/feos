@@ -304,7 +304,7 @@ impl Parameter for PcSaftParameters {
     fn from_records(
         pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
         binary_records: Array2<PcSaftBinaryRecord>,
-    ) -> Self {
+    ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
         let mut molarweight = Array::zeros(n);
@@ -404,7 +404,7 @@ impl Parameter for PcSaftParameters {
             .map(|r| r.ideal_gas_record.clone())
             .collect();
 
-        Self {
+        Ok(Self {
             molarweight,
             m,
             sigma,
@@ -428,7 +428,7 @@ impl Parameter for PcSaftParameters {
             pure_records,
             binary_records,
             joback_records,
-        }
+        })
     }
 
     fn records(
@@ -549,7 +549,7 @@ pub mod utils {
             }"#;
         let propane_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(propane_json).expect("Unable to parse json.");
-        Arc::new(PcSaftParameters::new_pure(propane_record))
+        Arc::new(PcSaftParameters::new_pure(propane_record).unwrap())
     }
 
     pub fn methane_parameters() -> Arc<PcSaftParameters> {
@@ -602,7 +602,7 @@ pub mod utils {
         }"#;
         let co2_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(co2_json).expect("Unable to parse json.");
-        PcSaftParameters::new_pure(co2_record)
+        PcSaftParameters::new_pure(co2_record).unwrap()
     }
 
     pub fn butane_parameters() -> Arc<PcSaftParameters> {
@@ -625,7 +625,7 @@ pub mod utils {
             }"#;
         let butane_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(butane_json).expect("Unable to parse json.");
-        Arc::new(PcSaftParameters::new_pure(butane_record))
+        Arc::new(PcSaftParameters::new_pure(butane_record).unwrap())
     }
 
     pub fn dme_parameters() -> PcSaftParameters {
@@ -649,7 +649,7 @@ pub mod utils {
             }"#;
         let dme_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(dme_json).expect("Unable to parse json.");
-        PcSaftParameters::new_pure(dme_record)
+        PcSaftParameters::new_pure(dme_record).unwrap()
     }
 
     pub fn water_parameters() -> PcSaftParameters {
@@ -674,7 +674,7 @@ pub mod utils {
             }"#;
         let water_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(water_json).expect("Unable to parse json.");
-        PcSaftParameters::new_pure(water_record)
+        PcSaftParameters::new_pure(water_record).unwrap()
     }
 
     pub fn dme_co2_parameters() -> PcSaftParameters {
@@ -716,7 +716,7 @@ pub mod utils {
         ]"#;
         let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
-        PcSaftParameters::new_binary(binary_record, None)
+        PcSaftParameters::new_binary(binary_record, None).unwrap()
     }
 
     pub fn propane_butane_parameters() -> Arc<PcSaftParameters> {
@@ -761,7 +761,7 @@ pub mod utils {
         ]"#;
         let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
-        Arc::new(PcSaftParameters::new_binary(binary_record, None))
+        Arc::new(PcSaftParameters::new_binary(binary_record, None).unwrap())
     }
 
     pub fn dodecane_nitrogen_parameters() -> Arc<PcSaftParameters> {
