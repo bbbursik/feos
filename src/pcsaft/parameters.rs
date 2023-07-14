@@ -622,7 +622,7 @@ pub mod utils {
         }"#;
         let methane_record: PureRecord<PcSaftRecord, JobackRecord> =
             serde_json::from_str(methane_json).expect("Unable to parse json.");
-        Arc::new(PcSaftParameters::new_pure(methane_record))
+        Arc::new(PcSaftParameters::new_pure(methane_record).unwrap())
     }
 
     pub fn carbon_dioxide_parameters() -> PcSaftParameters {
@@ -896,7 +896,7 @@ pub mod utils {
             let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
                 serde_json::from_str(binary_json).expect("Unable to parse json.");
             let kij = 0.1661;
-            Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into()) ))
+            Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into()) ).unwrap())
 
             // Arc::new(PcSaftParameters::new_binary(binary_record, Some(PcSaftBinaryRecord { k_ij: 0.1661 })))
     }

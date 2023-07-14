@@ -99,9 +99,15 @@ macro_rules! impl_planar_interface {
                 n_grid: usize,
                 l_grid: PySINumber,
                 density_profile: PySIArray2,
+                fix_equimolar_surface: Option<bool>,
             ) -> PyResult<Self> {
-                let mut profile = PlanarInterface::new(&vle.0, n_grid, l_grid.try_into()?);
-                profile.profile.density = density_profile.try_into()?;
+                let mut profile = PlanarInterface::new(&vle.0, n_grid, l_grid.into())?;
+                profile.profile.density = density_profile.into();
+                let fix_equim_surf = fix_equimolar_surface.unwrap_or(false); 
+                if fix_equim_surf {
+                    profile.profile.specification =
+                        DFTSpecifications::total_moles_from_profile(&profile.profile)?;
+                }
                 Ok(PyPlanarInterface(profile))
             }
         }
