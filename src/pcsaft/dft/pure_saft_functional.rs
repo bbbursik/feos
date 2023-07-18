@@ -195,16 +195,19 @@ impl<N: DualNum<f64> + ScalarOperand> FunctionalContributionDual<N> for PureChai
             .map(|&l| if l.re() < 0.0 { -l } else { l } + N::from(f64::EPSILON));
 
         // println!("Lambda before {}", lambda);
-        lambda.iter_mut().zip(rho.into_iter()).for_each(|(l, &d)| {
-            if l.re() < 1e-7 {
-            //     *l = d;// + N::from(f64::EPSILON);
-            //     // println!("Using lambda=rho for small densities in chain functional ");  
-                *l = *l - ( *l  - d ) * (-(((*l - 1.0e-8) * 5.0e8).tanh())/2.0 + 0.5); 
+        // lambda.iter_mut().zip(rho.into_iter()).for_each(|(l, &d)| {
+        //     if l.re() < 1e-7 {
+        //         //     *l = d;// + N::from(f64::EPSILON);
+        //         //     // println!("Using lambda=rho for small densities in chain functional ");
+        //         *l = *l - (*l - d) * (-(((*l - 1.0e-8) * 5.0e8).tanh()) / 2.0 + 0.5);
 
-                if l.re() < 0.0 { *l = -*l + N::from(f64::EPSILON)} else { *l = *l + N::from(f64::EPSILON)};
-            }
-
-        });
+        //         if l.re() < 0.0 {
+        //             *l = -*l + N::from(f64::EPSILON)
+        //         } else {
+        //             *l = *l + N::from(f64::EPSILON)
+        //         };
+        //     }
+        // });
 
         // println!("Lambda after {}", lambda);
 
