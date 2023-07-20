@@ -72,7 +72,7 @@ impl<F: HelmholtzEnergyFunctional> PlanarInterface<F> {
         // initialize convolver
         let t = vle.vapor().temperature.to_reduced();
         let weight_functions = dft.weight_functions(t);
-        let convolver = ConvolverFFT::plan(&grid, &weight_functions, None);
+        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));//None);
 
         Self {
             profile: DFTProfile::new(grid, convolver, vle.vapor(), None, None),
