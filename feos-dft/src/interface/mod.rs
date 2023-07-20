@@ -76,7 +76,7 @@ impl<F: HelmholtzEnergyFunctional> PlanarInterface<F> {
             .temperature
             .to_reduced(SIUnit::reference_temperature())?;
         let weight_functions = dft.weight_functions(t);
-        let convolver = ConvolverFFT::plan(&grid, &weight_functions, None);
+        let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));//None);
 
         Ok(Self {
             profile: DFTProfile::new(grid, convolver, vle.vapor(), None, None)?,
