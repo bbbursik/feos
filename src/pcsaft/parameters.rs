@@ -764,8 +764,66 @@ pub mod utils {
         Arc::new(PcSaftParameters::new_binary(binary_record, None).unwrap())
     }
 
+    pub fn propane_nitrogen_parameters() -> Arc<PcSaftParameters> {
+        let binary_json = r#"[
+            {
+                "identifier": {
+                    "cas": "74-98-6",
+                    "name": "propane",
+                    "iupac_name": "propane",
+                    "smiles": "CCC",
+                    "inchi": "InChI=1/C3H8/c1-3-2/h3H2,1-2H3",
+                    "formula": "C3H8"
+                },
+                "model_record": {
+                    "m": 2.0018290000000003,
+                    "sigma": 3.618353,
+                    "epsilon_k": 208.1101,
+                    "viscosity": [-0.8013, -1.9972, -0.2907, -0.0467],
+                    "thermal_conductivity": [-0.15348, -0.6388, 1.21342, -0.01664],
+                    "diffusion": [-0.675163251512047, 0.3212017677695878, 0.100175249144429, 0.0, 0.0]
+                },
+                "molarweight": 44.0962
+            },
+            {
+                "identifier": {
+                    "cas": "7727-37-9",
+                    "name": "nitrogen",
+                    "iupac_name": "molecular nitrogen",
+                    "smiles": "N#N",
+                    "inchi": "InChI=1/N2/c1-2",
+                    "formula": "N2"
+                },
+                "model_record": {
+                    "m": 1.1504,
+                    "sigma": 3.3848,
+                    "epsilon_k": 91.4,
+                    "q": 1.43,
+                    "viscosity": [
+                        -0.196376646,
+                        -0.9460855,
+                        -0.0309718769,
+                        -0.0303367687
+                    ],
+                    "diffusion": [
+                        -0.12855765455212295,
+                        0.24885131958296933,
+                        0.08052800000000002,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "molarweight": 28.0134
+            }
+        ]"#;
+        let kij = 0.0251;
+        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+            serde_json::from_str(binary_json).expect("Unable to parse json.");
+        Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
+    }
+
     pub fn dodecane_nitrogen_parameters() -> Arc<PcSaftParameters> {
-            let binary_json = r#"[
+        let binary_json = r#"[
             {
                 "identifier": {
                     "cas": "112-40-3",
@@ -826,33 +884,33 @@ pub mod utils {
                 "molarweight": 28.0134
             }
             ]"#;
-            let kij_json = r#"[
-            {
-              "id1": {
-                      "cas": "7727-37-9",
-                      "name": "nitrogen",
-                      "iupac_name": "molecular nitrogen",
-                      "smiles": "N#N",
-                      "inchi": "InChI=1/N2/c1-2",
-                      "formula": "N2"
-                  },
-              "id2": {
-                      "cas": "112-40-3",
-                      "name": "dodecane",
-                      "iupac_name": "dodecane",
-                      "smiles": "CCCCCCCCCCCC",
-                      "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
-                      "formula": "C12H26"
-                  },
-              "k_ij": 0.1661
-            }
-          ]"#;
-            let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
-                serde_json::from_str(binary_json).expect("Unable to parse json.");
-            let kij = 0.1661;
-            Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into()) ).unwrap())
+        // let kij_json = r#"[
+        //     {
+        //       "id1": {
+        //               "cas": "7727-37-9",
+        //               "name": "nitrogen",
+        //               "iupac_name": "molecular nitrogen",
+        //               "smiles": "N#N",
+        //               "inchi": "InChI=1/N2/c1-2",
+        //               "formula": "N2"
+        //           },
+        //       "id2": {
+        //               "cas": "112-40-3",
+        //               "name": "dodecane",
+        //               "iupac_name": "dodecane",
+        //               "smiles": "CCCCCCCCCCCC",
+        //               "inchi": "InChI=1/C12H26/c1-3-5-7-9-11-12-10-8-6-4-2/h3-12H2,1-2H3",
+        //               "formula": "C12H26"
+        //           },
+        //       "k_ij": 0.1661
+        //     }
+        //   ]"#;
+        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+            serde_json::from_str(binary_json).expect("Unable to parse json.");
+        let kij = 0.1661;
+        Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
 
-            // Arc::new(PcSaftParameters::new_binary(binary_record, Some(PcSaftBinaryRecord { k_ij: 0.1661 })))
+        // Arc::new(PcSaftParameters::new_binary(binary_record, Some(PcSaftBinaryRecord { k_ij: 0.1661 })))
     }
 
     #[test]
