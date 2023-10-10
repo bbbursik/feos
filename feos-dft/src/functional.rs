@@ -17,6 +17,7 @@ use std::borrow::Cow;
 use std::fmt;
 use std::ops::{AddAssign, Deref, MulAssign};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 /// Wrapper struct for the [HelmholtzEnergyFunctional] trait.
 ///
@@ -345,9 +346,18 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         D::Larger: Dimension<Smaller = D>,
         <D::Larger as Dimension>::Larger: Dimension<Smaller = D::Larger>,
     {
+        let now = Instant::now();
+
         let density_dual = density.mapv(Dual64::from);
         let temperature_dual = Dual64::from(temperature).derive();
         let weighted_densities = convolver.weighted_densities(&density_dual);
+        println!(
+            "Time for weighted density in entropy denity contribution {} microseconds",
+            now.elapsed().as_secs_f64() * 1_000_000.0
+        );
+
+        let now1 = Instant::now();
+
         let functional_contributions = self.contributions();
         let mut helmholtz_energy_density: Vec<Array<Dual64, D>> =
             Vec::with_capacity(functional_contributions.len() + 1);
@@ -355,6 +365,11 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             self.ideal_chain_contribution()
                 .calculate_helmholtz_energy_density(&density.mapv(Dual64::from))?,
         );
+        println!(
+            "Time for adding ideal chain term in viscosity function {} microseconds",
+            now1.elapsed().as_secs_f64() * 1_000_000.0
+        );
+        let now2 = Instant::now();
 
         for (c, wd) in functional_contributions.iter().zip(weighted_densities) {
             let nwd = wd.shape()[0];
@@ -368,10 +383,17 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
                 .unwrap(),
             );
         }
-        Ok(helmholtz_energy_density
+
+        let result = helmholtz_energy_density
             .iter()
             .map(|v| v.mapv(|f| -(f * temperature_dual).eps[0]))
-            .collect())
+            .collect();
+        println!(
+            "Time for calculating res entropy density contribus in viscosity function {} microseconds",
+            now2.elapsed().as_secs_f64() * 1_000_000.0
+        );
+
+        Ok(result)
     }
 
     /// Calculate the internal energy density $u$.
@@ -417,10 +439,20 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
         D: Dimension,
         D::Larger: Dimension<Smaller = D>,
     {
+        let now = Instant::now();
+
         let weighted_densities = convolver.weighted_densities(density);
+
+        println!(
+            "Time for calculation of weighted densities in functional derivaitve {} microseconds",
+            now.elapsed().as_secs_f64() * 1_000_000.0
+        );
         let contributions = self.contributions();
         let mut partial_derivatives = Vec::with_capacity(contributions.len());
         let mut helmholtz_energy_density = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+
+        let now2 = Instant::now();
+
         for (c, wd) in contributions.iter().zip(weighted_densities) {
             let nwd = wd.shape()[0];
             let ngrid = wd.len() / nwd;
@@ -435,10 +467,19 @@ impl<T: HelmholtzEnergyFunctional> DFT<T> {
             partial_derivatives.push(pd);
             helmholtz_energy_density += &phi;
         }
-        Ok((
-            helmholtz_energy_density,
-            convolver.functional_derivative(&partial_derivatives),
-        ))
+        println!(
+            "Time for calculation of partial derivatives in functional derivaitve {} microseconds",
+            now2.elapsed().as_secs_f64() * 1_000_000.0
+        );
+
+        let now3 = Instant::now();
+
+        let result = convolver.functional_derivative(&partial_derivatives);
+        println!(
+            "Time for calculation of functional derivative itself in functional derivaitve {} microseconds",
+            now3.elapsed().as_secs_f64() * 1_000_000.0
+        );
+        Ok((helmholtz_energy_density, result))
     }
 
     #[allow(clippy::type_complexity)]
