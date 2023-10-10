@@ -39,7 +39,8 @@ impl PoreSpecification<Ix2> for Pore2D {
             .to_reduced(SIUnit::reference_temperature())?;
 
         // initialize convolver
-        let grid = Grid::Cartesian2(x, y);
+        let grid = Grid::Periodical2(x, y);
+        print!("Using periodical2 Grid");
         let weight_functions = dft.weight_functions(t);
         let convolver = ConvolverFFT::plan(&grid, &weight_functions, Some(1));
 
