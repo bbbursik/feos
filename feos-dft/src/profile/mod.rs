@@ -89,8 +89,9 @@ impl<D: Dimension, F: HelmholtzEnergyFunctional> DFTSpecification<D, F> for DFTS
             Self::ChemicalPotential => bulk_density.clone(),
             Self::Moles { moles } => moles / z,
             Self::TotalMoles { total_moles } => {
-                bulk_density * *total_moles / (bulk_density * z).sum()
+                bulk_density * *total_moles / ( z).sum()
             }
+            // fix error here, double bulk density removed
         })
     }
 }
