@@ -1,4 +1,4 @@
-use feos_core::parameter::{{Identifier, ParameterError}, ParameterError};
+use feos_core::parameter::{Identifier, ParameterError};
 use feos_core::parameter::{Parameter, PureRecord};
 use lazy_static::lazy_static;
 use ndarray::concatenate;

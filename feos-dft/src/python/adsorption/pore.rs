@@ -148,12 +148,12 @@ macro_rules! impl_pore {
             #[new]
             fn new(
                 system_size: [PySINumber; 2],
-                angle: PyAngle,
+                angle: Option<PyAngle>,
                 n_grid: [usize; 2],
             ) -> PyResult<Self> {
                 Ok(Self(Pore2D::new(
                     [system_size[0].try_into()?, system_size[1].try_into()?],
-                    angle.into(),
+                    angle.map(|angle| angle.into()),
                     n_grid,
                 )))
             }

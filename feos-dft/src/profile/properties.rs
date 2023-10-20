@@ -126,45 +126,7 @@ where
         ))
     }
 
-    /// Calculate the individual contributions to the entropy density.
-    ///
-    /// Untested with heterosegmented functionals.
-    pub fn entropy_density_contributions(
-        &self,
-        temperature: f64,
-        density: &Array<f64, D::Larger>,
-        convolver: &Arc<dyn Convolver<Dual64, D>>,
-    ) -> EosResult<Vec<Array<f64, D>>> {
-        let density_dual = density.mapv(Dual64::from);
-        let temperature_dual = Dual64::from(temperature).derivative();
-        let weighted_densities = convolver.weighted_densities(&density_dual);
-        let functional_contributions = self.dft.contributions();
-        let mut helmholtz_energy_density: Vec<Array<Dual64, _>> =
-            Vec::with_capacity(functional_contributions.len() + 1);
-        helmholtz_energy_density.push(
-            self.dft
-                .ideal_chain_contribution()
-                .calculate_helmholtz_energy_density(&density.mapv(Dual64::from))?,
-        );
-
-        for (c, wd) in functional_contributions.iter().zip(weighted_densities) {
-            let nwd = wd.shape()[0];
-            let ngrid = wd.len() / nwd;
-            helmholtz_energy_density.push(
-                c.calculate_helmholtz_energy_density(
-                    temperature_dual,
-                    wd.into_shape((nwd, ngrid)).unwrap().view(),
-                )?
-                .into_shape(density.raw_dim().remove_axis(Axis(0)))
-                .unwrap(),
-            );
-        }
-        Ok(helmholtz_energy_density
-            .iter()
-            .map(|v| v.mapv(|f| -(f * temperature_dual).eps))
-            .collect())
     }
-}
 
 impl<D: Dimension + RemoveAxis + 'static, F: HelmholtzEnergyFunctional + IdealGas> DFTProfile<D, F>
 where

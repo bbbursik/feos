@@ -620,7 +620,7 @@ pub mod utils {
                 ]
             }
         }"#;
-        let methane_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let methane_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(methane_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_pure(methane_record).unwrap())
     }
@@ -863,7 +863,7 @@ pub mod utils {
             }
         ]"#;
         let kij = 0.0251;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
     }
@@ -951,7 +951,7 @@ pub mod utils {
         //       "k_ij": 0.1661
         //     }
         //   ]"#;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         let kij = 0.1661;
         Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
