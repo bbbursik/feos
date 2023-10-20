@@ -1,12 +1,9 @@
 use crate::cubic::{PengRobinsonParameters, PengRobinsonRecord};
-use crate::joback::JobackRecord;
 use crate::parameter::{
     BinaryRecord, Identifier, IdentifierOption, Parameter, ParameterError, PureRecord,
 };
-use crate::python::joback::PyJobackRecord;
 use crate::python::parameter::PyIdentifier;
 use crate::*;
-use ndarray::Array2;
 use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -32,12 +29,7 @@ impl PyPengRobinsonRecord {
 
 impl_json_handling!(PyPengRobinsonRecord);
 
-impl_pure_record!(
-    PengRobinsonRecord,
-    PyPengRobinsonRecord,
-    JobackRecord,
-    PyJobackRecord
-);
+impl_pure_record!(PengRobinsonRecord, PyPengRobinsonRecord);
 
 impl_binary_record!();
 
@@ -63,7 +55,12 @@ impl_binary_record!();
 #[derive(Clone)]
 pub struct PyPengRobinsonParameters(pub Arc<PengRobinsonParameters>);
 
-impl_parameter!(PengRobinsonParameters, PyPengRobinsonParameters);
+impl_parameter!(
+    PengRobinsonParameters,
+    PyPengRobinsonParameters,
+    PyPengRobinsonRecord,
+    f64
+);
 
 #[pymethods]
 impl PyPengRobinsonParameters {

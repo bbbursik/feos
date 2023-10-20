@@ -1,4 +1,5 @@
-use feos_core::EosResult;
+use feos_core::si::MolarWeight;
+use feos_core::{Components, EosResult};
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::solvation::PairPotential;
 use feos_dft::{
@@ -84,7 +85,7 @@ impl<P> FMTContribution<P> {
     }
 }
 
-impl<P: HardSphereProperties, N: DualNum<f64>> FunctionalContributionDual<N>
+impl<P: HardSphereProperties, N: DualNum<f64> + Copy> FunctionalContributionDual<N>
     for FMTContribution<P>
 {
     fn weight_functions(&self, temperature: N) -> WeightFunctionInfo<N> {
@@ -322,12 +323,25 @@ impl FMTFunctional {
         });
         let contributions: Vec<Box<dyn FunctionalContribution>> =
             vec![Box::new(FMTContribution::new(&properties, version))];
-        (Self {
+        DFT(Self {
             properties,
             contributions,
             version,
         })
-        .into()
+    }
+}
+
+impl Components for FMTFunctional {
+    fn components(&self) -> usize {
+        self.properties.sigma.len()
+    }
+
+    fn subset(&self, component_list: &[usize]) -> Self {
+        let sigma = component_list
+            .iter()
+            .map(|&c| self.properties.sigma[c])
+            .collect();
+        Self::new(&sigma, self.version).0
     }
 }
 
@@ -336,16 +350,12 @@ impl HelmholtzEnergyFunctional for FMTFunctional {
         &self.contributions
     }
 
-    fn subset(&self, component_list: &[usize]) -> DFT<Self> {
-        let sigma = component_list
-            .iter()
-            .map(|&c| self.properties.sigma[c])
-            .collect();
-        Self::new(&sigma, self.version)
-    }
-
     fn compute_max_density(&self, moles: &Array1<f64>) -> f64 {
         moles.sum() / (moles * &self.properties.sigma).sum() * 1.2
+    }
+
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
+        panic!("No mass specific properties are available for this model!")
     }
 
     fn molecule_shape(&self) -> MoleculeShape {

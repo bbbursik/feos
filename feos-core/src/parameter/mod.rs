@@ -30,47 +30,50 @@ where
     Self: Sized,
 {
     type Pure: Clone + DeserializeOwned;
-    type IdealGas: Clone + DeserializeOwned;
     type Binary: Clone + DeserializeOwned + Default;
 
     /// Creates parameters from records for pure substances and possibly binary parameters.
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<Self::Binary>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<Self::Binary>>,
     ) -> Result<Self, ParameterError>;
 
     /// Creates parameters for a pure component from a pure record.
-    fn new_pure(
-        pure_record: PureRecord<Self::Pure, Self::IdealGas>,
-    ) -> Result<Self, ParameterError> {
-        let binary_record = Array2::from_elem([1, 1], Self::Binary::default());
-        Self::from_records(vec![pure_record], binary_record)
+    fn new_pure(pure_record: PureRecord<Self::Pure>) -> Result<Self, ParameterError> {
+        Self::from_records(vec![pure_record], None)
     }
 
     /// Creates parameters for a binary system from pure records and an optional
     /// binary interaction parameter.
     fn new_binary(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
         binary_record: Option<Self::Binary>,
     ) -> Result<Self, ParameterError> {
-        let binary_record = Array2::from_shape_fn([2, 2], |(i, j)| {
-            if i == j {
-                Self::Binary::default()
-            } else {
-                binary_record.clone().unwrap_or_default()
-            }
+        let binary_record = binary_record.map(|br| {
+            Array2::from_shape_fn([2, 2], |(i, j)| {
+                if i == j {
+                    Self::Binary::default()
+                } else {
+                    br.clone()
+                }
+            })
         });
         Self::from_records(pure_records, binary_record)
     }
 
+    /// Creates parameters from model records with default values for the molar weight,
+    /// identifiers, and binary interaction parameters.
+    fn from_model_records(model_records: Vec<Self::Pure>) -> Result<Self, ParameterError> {
+        let pure_records = model_records
+            .into_iter()
+            .map(|r| PureRecord::new(Default::default(), Default::default(), r))
+            .collect();
+        Self::from_records(pure_records, None)
+    }
+
     /// Return the original pure and binary records that were used to construct the parameters.
     #[allow(clippy::type_complexity)]
-    fn records(
-        &self,
-    ) -> (
-        &[PureRecord<Self::Pure, Self::IdealGas>],
-        &Array2<Self::Binary>,
-    );
+    fn records(&self) -> (&[PureRecord<Self::Pure>], Option<&Array2<Self::Binary>>);
 
     /// Helper function to build matrix from list of records in correct order.
     ///
@@ -78,10 +81,14 @@ where
     /// `pure_records`, the `Default` implementation of Self::Binary is used.
     #[allow(clippy::expect_fun_call)]
     fn binary_matrix_from_records(
-        pure_records: &Vec<PureRecord<Self::Pure, Self::IdealGas>>,
+        pure_records: &Vec<PureRecord<Self::Pure>>,
         binary_records: &[BinaryRecord<Identifier, Self::Binary>],
         search_option: IdentifierOption,
-    ) -> Result<Array2<Self::Binary>, ParameterError> {
+    ) -> Option<Array2<Self::Binary>> {
+        if binary_records.is_empty() {
+            return None;
+        }
+
         // Build Hashmap (id, id) -> BinaryRecord
         let binary_map: HashMap<(String, String), Self::Binary> = {
             binary_records
@@ -94,7 +101,7 @@ where
                 .collect()
         };
         let n = pure_records.len();
-        Ok(Array2::from_shape_fn([n, n], |(i, j)| {
+        Some(Array2::from_shape_fn([n, n], |(i, j)| {
             let id1 = pure_records[i]
                 .identifier
                 .as_string(search_option)
@@ -140,8 +147,7 @@ where
         P: AsRef<Path>,
     {
         let mut queried: IndexSet<String> = IndexSet::new();
-        let mut record_map: HashMap<String, PureRecord<Self::Pure, Self::IdealGas>> =
-            HashMap::new();
+        let mut record_map: HashMap<String, PureRecord<Self::Pure>> = HashMap::new();
 
         for (substances, file) in input {
             substances.iter().try_for_each(|identifier| {
@@ -156,8 +162,7 @@ where
             let f = File::open(file)?;
             let reader = BufReader::new(f);
 
-            let pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>> =
-                serde_json::from_reader(reader)?;
+            let pure_records: Vec<PureRecord<Self::Pure>> = serde_json::from_reader(reader)?;
 
             pure_records
                 .into_iter()
@@ -194,7 +199,7 @@ where
         } else {
             Vec::new()
         };
-        let record_matrix = Self::binary_matrix_from_records(&p, &binary_records, search_option)?;
+        let record_matrix = Self::binary_matrix_from_records(&p, &binary_records, search_option);
         Self::from_records(p, record_matrix)
     }
 
@@ -204,12 +209,11 @@ where
     /// and the ideal gas record.
     fn from_segments<C: SegmentCount>(
         chemical_records: Vec<C>,
-        segment_records: Vec<SegmentRecord<Self::Pure, Self::IdealGas>>,
+        segment_records: Vec<SegmentRecord<Self::Pure>>,
         binary_segment_records: Option<Vec<BinaryRecord<String, Self::Binary>>>,
     ) -> Result<Self, ParameterError>
     where
         Self::Pure: FromSegments<C::Count>,
-        Self::IdealGas: FromSegments<C::Count>,
         Self::Binary: FromSegmentsBinary<C::Count>,
     {
         // update the pure records with model and ideal gas records
@@ -261,7 +265,7 @@ where
             }
         }
 
-        Self::from_records(pure_records, binary_records)
+        Self::from_records(pure_records, Some(binary_records))
     }
 
     /// Creates parameters from segment information stored in json files.
@@ -278,7 +282,6 @@ where
     where
         P: AsRef<Path>,
         Self::Pure: FromSegments<usize>,
-        Self::IdealGas: FromSegments<usize>,
         Self::Binary: FromSegmentsBinary<usize>,
     {
         let queried: IndexSet<String> = substances
@@ -317,7 +320,7 @@ where
             .collect();
 
         // Read segment records
-        let segment_records: Vec<SegmentRecord<Self::Pure, Self::IdealGas>> =
+        let segment_records: Vec<SegmentRecord<Self::Pure>> =
             SegmentRecord::from_json(file_segments)?;
 
         // Read binary records
@@ -348,8 +351,10 @@ where
             .map(|&i| pure_records[i].clone())
             .collect();
         let n = component_list.len();
-        let binary_records = Array2::from_shape_fn([n, n], |(i, j)| {
-            binary_records[(component_list[i], component_list[j])].clone()
+        let binary_records = binary_records.map(|br| {
+            Array2::from_shape_fn([n, n], |(i, j)| {
+                br[(component_list[i], component_list[j])].clone()
+            })
         });
 
         Self::from_records(pure_records, binary_records)
@@ -361,13 +366,12 @@ where
 pub trait ParameterHetero: Sized {
     type Chemical: Clone;
     type Pure: Clone + DeserializeOwned;
-    type IdealGas: Clone + DeserializeOwned;
     type Binary: Clone + DeserializeOwned;
 
     /// Creates parameters from the molecular structure and segment information.
     fn from_segments<C: Clone + Into<Self::Chemical>>(
         chemical_records: Vec<C>,
-        segment_records: Vec<SegmentRecord<Self::Pure, Self::IdealGas>>,
+        segment_records: Vec<SegmentRecord<Self::Pure>>,
         binary_segment_records: Option<Vec<BinaryRecord<String, Self::Binary>>>,
     ) -> Result<Self, ParameterError>;
 
@@ -377,7 +381,7 @@ pub trait ParameterHetero: Sized {
         &self,
     ) -> (
         &[Self::Chemical],
-        &[SegmentRecord<Self::Pure, Self::IdealGas>],
+        &[SegmentRecord<Self::Pure>],
         &Option<Vec<BinaryRecord<String, Self::Binary>>>,
     );
 
@@ -427,7 +431,7 @@ pub trait ParameterHetero: Sized {
             .collect();
 
         // Read segment records
-        let segment_records: Vec<SegmentRecord<Self::Pure, Self::IdealGas>> =
+        let segment_records: Vec<SegmentRecord<Self::Pure>> =
             SegmentRecord::from_json(file_segments)?;
 
         // Read binary records
@@ -481,7 +485,6 @@ pub enum ParameterError {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::joback::JobackRecord;
     use serde::{Deserialize, Serialize};
     use std::convert::TryFrom;
 
@@ -503,17 +506,16 @@ mod test {
     }
 
     struct MyParameter {
-        pure_records: Vec<PureRecord<MyPureModel, JobackRecord>>,
-        binary_records: Array2<MyBinaryModel>,
+        pure_records: Vec<PureRecord<MyPureModel>>,
+        binary_records: Option<Array2<MyBinaryModel>>,
     }
 
     impl Parameter for MyParameter {
         type Pure = MyPureModel;
-        type IdealGas = JobackRecord;
         type Binary = MyBinaryModel;
         fn from_records(
-            pure_records: Vec<PureRecord<MyPureModel, JobackRecord>>,
-            binary_records: Array2<MyBinaryModel>,
+            pure_records: Vec<PureRecord<MyPureModel>>,
+            binary_records: Option<Array2<MyBinaryModel>>,
         ) -> Result<Self, ParameterError> {
             Ok(Self {
                 pure_records,
@@ -521,13 +523,8 @@ mod test {
             })
         }
 
-        fn records(
-            &self,
-        ) -> (
-            &[PureRecord<MyPureModel, JobackRecord>],
-            &Array2<MyBinaryModel>,
-        ) {
-            (&self.pure_records, &self.binary_records)
+        fn records(&self) -> (&[PureRecord<MyPureModel>], Option<&Array2<MyBinaryModel>>) {
+            (&self.pure_records, self.binary_records.as_ref())
         }
     }
 
@@ -576,12 +573,12 @@ mod test {
             &pure_records,
             &binary_records,
             IdentifierOption::Cas,
-        )?;
+        );
         let p = MyParameter::from_records(pure_records, binary_matrix)?;
 
         assert_eq!(p.pure_records[0].identifier.cas, Some("123-4-5".into()));
         assert_eq!(p.pure_records[1].identifier.cas, Some("678-9-1".into()));
-        assert_eq!(p.binary_records[[0, 1]].b, 12.0);
+        assert_eq!(p.binary_records.unwrap()[[0, 1]].b, 12.0);
         Ok(())
     }
 
@@ -630,13 +627,14 @@ mod test {
             &pure_records,
             &binary_records,
             IdentifierOption::Cas,
-        )?;
+        );
         let p = MyParameter::from_records(pure_records, binary_matrix)?;
 
         assert_eq!(p.pure_records[0].identifier.cas, Some("123-4-5".into()));
         assert_eq!(p.pure_records[1].identifier.cas, Some("678-9-1".into()));
-        assert_eq!(p.binary_records[[0, 1]], MyBinaryModel::default());
-        assert_eq!(p.binary_records[[0, 1]].b, 0.0);
+        let br = p.binary_records.as_ref().unwrap();
+        assert_eq!(br[[0, 1]], MyBinaryModel::default());
+        assert_eq!(br[[0, 1]].b, 0.0);
         Ok(())
     }
 
@@ -694,18 +692,19 @@ mod test {
             &pure_records,
             &binary_records,
             IdentifierOption::Cas,
-        )?;
+        );
         let p = MyParameter::from_records(pure_records, binary_matrix)?;
 
         assert_eq!(p.pure_records[0].identifier.cas, Some("000-0-0".into()));
         assert_eq!(p.pure_records[1].identifier.cas, Some("123-4-5".into()));
         assert_eq!(p.pure_records[2].identifier.cas, Some("678-9-1".into()));
-        assert_eq!(p.binary_records[[0, 1]], MyBinaryModel::default());
-        assert_eq!(p.binary_records[[1, 0]], MyBinaryModel::default());
-        assert_eq!(p.binary_records[[0, 2]], MyBinaryModel::default());
-        assert_eq!(p.binary_records[[2, 0]], MyBinaryModel::default());
-        assert_eq!(p.binary_records[[2, 1]].b, 12.0);
-        assert_eq!(p.binary_records[[1, 2]].b, 12.0);
+        let br = p.binary_records.as_ref().unwrap();
+        assert_eq!(br[[0, 1]], MyBinaryModel::default());
+        assert_eq!(br[[1, 0]], MyBinaryModel::default());
+        assert_eq!(br[[0, 2]], MyBinaryModel::default());
+        assert_eq!(br[[2, 0]], MyBinaryModel::default());
+        assert_eq!(br[[2, 1]].b, 12.0);
+        assert_eq!(br[[1, 2]].b, 12.0);
         Ok(())
     }
 }

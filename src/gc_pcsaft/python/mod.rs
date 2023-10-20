@@ -3,12 +3,12 @@ use super::dft::GcPcSaftFunctionalParameters;
 use super::eos::GcPcSaftEosParameters;
 use super::record::GcPcSaftRecord;
 use crate::association::PyAssociationRecord;
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{
     BinaryRecord, IdentifierOption, ParameterError, ParameterHetero, SegmentRecord,
 };
-use feos_core::python::joback::PyJobackRecord;
-use feos_core::python::parameter::{PyBinarySegmentRecord, PyChemicalRecord, PyIdentifier};
+use feos_core::python::parameter::{
+    PyBinarySegmentRecord, PyChemicalRecord, PyIdentifier, PySmartsRecord,
+};
 use feos_core::{impl_json_handling, impl_parameter_from_segments, impl_segment_record};
 #[cfg(feature = "dft")]
 use numpy::{PyArray2, ToPyArray};
@@ -67,7 +67,7 @@ impl PyGcPcSaftRecord {
 
     #[getter]
     fn get_association_record(&self) -> Option<PyAssociationRecord> {
-        self.0.association_record.clone().map(PyAssociationRecord)
+        self.0.association_record.map(PyAssociationRecord)
     }
 
     fn __repr__(&self) -> PyResult<String> {
@@ -77,12 +77,7 @@ impl PyGcPcSaftRecord {
 
 impl_json_handling!(PyGcPcSaftRecord);
 
-impl_segment_record!(
-    GcPcSaftRecord,
-    PyGcPcSaftRecord,
-    JobackRecord,
-    PyJobackRecord
-);
+impl_segment_record!(GcPcSaftRecord, PyGcPcSaftRecord);
 
 #[pyclass(name = "GcPcSaftEosParameters")]
 #[pyo3(
@@ -95,6 +90,10 @@ impl_parameter_from_segments!(GcPcSaftEosParameters, PyGcPcSaftEosParameters);
 
 #[pymethods]
 impl PyGcPcSaftEosParameters {
+    fn phi(&self, phi: Vec<f64>) -> PyResult<Self> {
+        Ok(Self(Arc::new((*self.0).clone().phi(&phi)?)))
+    }
+
     fn _repr_markdown_(&self) -> String {
         self.0.to_markdown()
     }
@@ -152,7 +151,7 @@ pub fn gc_pcsaft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyIdentifier>()?;
     m.add_class::<IdentifierOption>()?;
     m.add_class::<PyChemicalRecord>()?;
-    m.add_class::<PyJobackRecord>()?;
+    m.add_class::<PySmartsRecord>()?;
     m.add_class::<PyAssociationRecord>()?;
 
     m.add_class::<PyGcPcSaftRecord>()?;

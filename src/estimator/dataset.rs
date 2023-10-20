@@ -3,10 +3,8 @@
 //! a `target` which can be values from experimental data or
 //! other models.
 use super::{EstimatorError, Loss};
-use feos_core::EquationOfState;
+use feos_core::Residual;
 use ndarray::Array1;
-use quantity::si::SIArray1;
-use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 
@@ -14,9 +12,9 @@ use std::sync::Arc;
 ///
 /// Functionalities in the context of optimizations of
 /// parameters of equations of state.
-pub trait DataSet<E: EquationOfState>: Send + Sync {
+pub trait DataSet<E: Residual>: Send + Sync {
     /// Return target quantity.
-    fn target(&self) -> &SIArray1;
+    fn target(&self) -> &Array1<f64>;
 
     /// Return the description of the target quantity.
     fn target_str(&self) -> &str;
@@ -25,7 +23,7 @@ pub trait DataSet<E: EquationOfState>: Send + Sync {
     fn input_str(&self) -> Vec<&str>;
 
     /// Evaluation of the equation of state for the target quantity.
-    fn predict(&self, eos: &Arc<E>) -> Result<SIArray1, EstimatorError>;
+    fn predict(&self, eos: &Arc<E>) -> Result<Array1<f64>, EstimatorError>;
 
     /// Evaluate the cost function.
     fn cost(&self, eos: &Arc<E>, loss: Loss) -> Result<Array1<f64>, EstimatorError> {
@@ -34,9 +32,6 @@ pub trait DataSet<E: EquationOfState>: Send + Sync {
         let datapoints = cost.len();
         Ok(cost / datapoints as f64)
     }
-
-    /// Returns the input quantities as HashMap. The keys are the input's descriptions.
-    fn get_input(&self) -> HashMap<String, SIArray1>;
 
     /// Returns the number of experimental data points.
     fn datapoints(&self) -> usize {
@@ -47,7 +42,7 @@ pub trait DataSet<E: EquationOfState>: Send + Sync {
     fn relative_difference(&self, eos: &Arc<E>) -> Result<Array1<f64>, EstimatorError> {
         let prediction = &self.predict(eos)?;
         let target = self.target();
-        Ok(((prediction - target) / target).into_value()?)
+        Ok((prediction - target) / target)
     }
 
     /// Returns the mean of the absolute relative difference between the equation of state and the experimental values.
@@ -61,7 +56,7 @@ pub trait DataSet<E: EquationOfState>: Send + Sync {
     }
 }
 
-impl<E: EquationOfState> fmt::Display for dyn DataSet<E> {
+impl<E: Residual> fmt::Display for dyn DataSet<E> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,

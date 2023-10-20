@@ -3,14 +3,11 @@ use crate::saftvrqmie::eos::FeynmanHibbsOrder;
 use crate::saftvrqmie::parameters::{
     SaftVRQMieBinaryRecord, SaftVRQMieParameters, SaftVRQMieRecord,
 };
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{
     BinaryRecord, Identifier, IdentifierOption, Parameter, ParameterError, PureRecord,
 };
-use feos_core::python::joback::PyJobackRecord;
 use feos_core::python::parameter::PyIdentifier;
 use feos_core::*;
-use ndarray::Array2;
 use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::{PyIOError, PyTypeError};
 use pyo3::prelude::*;
@@ -18,10 +15,35 @@ use quantity::python::PySINumber;
 use std::convert::{TryFrom, TryInto};
 use std::sync::Arc;
 
-/// Create a set of Saft-VRQ Mie parameters from records.
+/// Pure-substance parameters for the Saft-VRQ Mie equation of state.
+///
+/// Parameters
+/// ----------
+/// m : float
+///     Segment number
+/// sigma : float
+///     Structure parameter of the Mie potential in units of
+///     Angstrom.
+/// epsilon_k : float
+///     Energetic parameter of the Mie potential in units of
+///     Kelvin.
+/// lr : float
+///     Repulsive exponent of the Mie potential.
+/// la : float
+///     Attractive exponent of the Mie potential.
+/// fh : int
+///     Feynman-Hibbs order. One of {0, 1, 2}.
+///     `fh = 0` disables quantum corrections so that effectively,
+///     the SAFT-VR Mie equation of state is used.
+/// viscosity : List[float], optional
+///     Entropy-scaling parameters for viscosity. Defaults to `None`.
+/// diffusion : List[float], optional
+///     Entropy-scaling parameters for diffusion. Defaults to `None`.
+/// thermal_conductivity : List[float], optional
+///     Entropy-scaling parameters for thermal_conductivity. Defaults to `None`.
 #[pyclass(name = "SaftVRQMieRecord")]
 #[pyo3(
-    text_signature = "(m, sigma, epsilon_k, viscosity=None, diffusion=None, thermal_conductivity=None)"
+    text_signature = "(m, sigma, epsilon_k, lr, la, fh, viscosity=None, diffusion=None, thermal_conductivity=None)"
 )]
 #[derive(Clone)]
 pub struct PySaftVRQMieRecord(SaftVRQMieRecord);
@@ -37,10 +59,20 @@ impl PySaftVRQMieRecord {
         la: f64,
         fh: usize,
         viscosity: Option<[f64; 4]>,
-    ) -> Self {
-        Self(SaftVRQMieRecord::new(
-            m, sigma, epsilon_k, lr, la, fh, viscosity, None, None,
-        ))
+        diffusion: Option<[f64; 5]>,
+        thermal_conductivity: Option<[f64; 4]>,
+    ) -> PyResult<Self> {
+        Ok(Self(SaftVRQMieRecord::new(
+            m,
+            sigma,
+            epsilon_k,
+            lr,
+            la,
+            fh,
+            viscosity,
+            diffusion,
+            thermal_conductivity,
+        )?))
     }
 
     #[getter]
@@ -148,14 +180,14 @@ impl PySaftVRQMieBinaryRecord {
 pub struct PySaftVRQMieParameters(pub Arc<SaftVRQMieParameters>);
 
 impl_json_handling!(PySaftVRQMieRecord);
-impl_pure_record!(
-    SaftVRQMieRecord,
-    PySaftVRQMieRecord,
-    JobackRecord,
-    PyJobackRecord
-);
+impl_pure_record!(SaftVRQMieRecord, PySaftVRQMieRecord);
 impl_binary_record!(SaftVRQMieBinaryRecord, PySaftVRQMieBinaryRecord);
-impl_parameter!(SaftVRQMieParameters, PySaftVRQMieParameters);
+impl_parameter!(
+    SaftVRQMieParameters,
+    PySaftVRQMieParameters,
+    PySaftVRQMieRecord,
+    PySaftVRQMieBinaryRecord
+);
 
 #[pymethods]
 impl PySaftVRQMieParameters {
@@ -213,8 +245,13 @@ impl PySaftVRQMieParameters {
         r_max: PySINumber,
     ) -> PyResult<()> {
         self.0
-            .lammps_tables(temperature.into(), n, r_min.into(), r_max.into())
-            .map_err(|e| PyIOError::new_err(e))
+            .lammps_tables(
+                temperature.try_into()?,
+                n,
+                r_min.try_into()?,
+                r_max.try_into()?,
+            )
+            .map_err(PyIOError::new_err)
     }
 
     fn _repr_markdown_(&self) -> String {
@@ -230,7 +267,6 @@ impl PySaftVRQMieParameters {
 pub fn saftvrqmie(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyIdentifier>()?;
     m.add_class::<IdentifierOption>()?;
-    m.add_class::<PyJobackRecord>()?;
     m.add_class::<FeynmanHibbsOrder>()?;
 
     m.add_class::<PySaftVRQMieRecord>()?;

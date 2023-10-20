@@ -8,6 +8,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added new functions `isenthalpic_compressibility`, `thermal_expansivity` and `grueneisen_parameter` to `State`. [#154](https://github.com/feos-org/feos/pull/154)
 - Readded `PhaseEquilibrium::new_npt` to the public interface in Rust and Python.  [#164](https://github.com/feos-org/feos/pull/164)
+- Added `Components`, `Residual`, `IdealGas` and `DeBroglieWavelength` traits to decouple ideal gas models from residual models. [#158](https://github.com/feos-org/feos/pull/158)
+- Added `JobackParameters` struct that implements `Parameters` including Python bindings. [#158](https://github.com/feos-org/feos/pull/158)
+- Added `Parameter::from_model_records` as a simpler interface to generate parameters.  [#169](https://github.com/feos-org/feos/pull/169)
+- Added optional `Phase` argument for constructors of dynamic properties of `DataSet`s.  [#174](https://github.com/feos-org/feos/pull/174)
+- Added `molar_weight` method to `Residual` trait. [#177](https://github.com/feos-org/feos/pull/177)
+- Added molar versions for entropy, enthalpy, etc. for residual properties. [#177](https://github.com/feos-org/feos/pull/177)
+- Python only: Added `SmartsRecord` and `ChemicalRecord.from_smiles` that uses rdkit to calculate segments and bonds from a SMILES code. [#191](https://github.com/feos-org/feos/pull/191)
+- Python only: Added `from_smiles` and `from_json_smiles` to parameter objects that build parameters from SMILES codes using rdkit. [#191](https://github.com/feos-org/feos/pull/191)
+
+### Changed
+- Changed constructors of `Parameter` trait to return `Result`s. [#161](https://github.com/feos-org/feos/pull/161)
+- Changed `EquationOfState` from a trait to a `struct` that is generic over `Residual` and `IdealGas` and implements all necessary traits to be used as equation of state including the ideal gas contribution. [#158](https://github.com/feos-org/feos/pull/158)
+- The `Parameter` trait no longer has an associated type `IdealGas`. [#158](https://github.com/feos-org/feos/pull/158)
+- Split properties of `State` into those that require the `Residual` trait (`residual_properties.rs`) and those that require both `Residual + IdealGas` (`properties.rs`). [#158](https://github.com/feos-org/feos/pull/158)
+- State creation routines are split into those that can be used with `Residual` and those that require `Residual + IdealGas`. [#158](https://github.com/feos-org/feos/pull/158)
+- `Contributions` enum no longer includes the `ResidualNpt` variant. `ResidualNvt` variant is renamed to `Residual`. [#158](https://github.com/feos-org/feos/pull/158)
+- Moved `Verbosity` and `SolverOption` from `phase_equilibria` module to `lib.rs`. [#158](https://github.com/feos-org/feos/pull/158)
+- Moved `StateVec` into own file and module. [#158](https://github.com/feos-org/feos/pull/158)
+- Ideal gas and residual Helmholtz energy models can now be separately implemented in Python via the `PyIdealGas` and `PyResidual` structs. [#158](https://github.com/feos-org/feos/pull/158)
+- Bubble and dew point iterations will not attempt a second iteration if no solution is found for the given initial pressure. [#166](https://github.com/feos-org/feos/pull/166)
+- Made the binary records in the constructions and getters of the `Parameter` trait optional. [#169](https://github.com/feos-org/feos/pull/169)
+- Changed the second argument of `new_binary` in Python from a `BinaryRecord` to the corresponding binary model record (analogous to the Rust implementation). [#169](https://github.com/feos-org/feos/pull/169)
+- Renamed `c_v` and `c_p` to `isochoric_heat_capacity` and `isobaric_heat_capacity`, respectively, and added prefixes for molar and specific properties. [#177](https://github.com/feos-org/feos/pull/177)
+- `State.helmholtz_energy_contributions` in Python now accepts optional `Contributions`. [#177](https://github.com/feos-org/feos/pull/177)
+- Changed `StateVec` Python getters for entropy and enthalpy to functions that accept optional `Contributions`. [#177](https://github.com/feos-org/feos/pull/177)
+- `PhaseDiagram.to_dict` in Python now accepts optional `Contributions` and includes mass specific properties. [#177](https://github.com/feos-org/feos/pull/177)
+- Replaced the run-time unit checks from the `quantity` crate with compile-time unit checks with custom implementations in the new `feos_core.si` module. [#181](https://github.com/feos-org/feos/pull/181)
+
+### Removed
+- Removed `EquationOfState` trait. [#158](https://github.com/feos-org/feos/pull/158)
+- Removed ideal gas dependencies from `PureRecord` and `SegmentRecord`. [#158](https://github.com/feos-org/feos/pull/158)
+- Removed Python getter and setter functions and optional arguments for ideal gas records in macros. [#158](https://github.com/feos-org/feos/pull/158)
+- Removed `MolarWeight` trait. [#177](https://github.com/feos-org/feos/pull/177)
+
+### Fixed
+- The vapor and liquid states in a bubble or dew point iteration are assigned correctly according to the inputs, rather than based on the mole density which can be incorrect for mixtures with large differences in molar weights. [#166](https://github.com/feos-org/feos/pull/166)
+
+### Packaging
+- Updated `num-dual` dependency to 0.7. [#137](https://github.com/feos-org/feos/pull/137)
 
 ### Changed
 - Changed constructors of `Parameter` trait to return `Result`s. [#161](https://github.com/feos-org/feos/pull/161)

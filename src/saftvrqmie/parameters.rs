@@ -1,10 +1,9 @@
 use crate::saftvrqmie::eos::FeynmanHibbsOrder;
 use core::cmp::max;
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{Parameter, ParameterError, PureRecord};
+use feos_core::si::{Length, Temperature, CALORIE, GRAM, KELVIN, KILO, KILOGRAM, MOL, NAV, RGAS};
 use ndarray::{Array, Array1, Array2};
 use num_traits::Zero;
-use quantity::si::{SINumber, ANGSTROM, CALORIE, GRAM, KELVIN, KILO, KILOGRAM, MOL, NAV, RGAS};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::convert::TryFrom;
@@ -67,8 +66,13 @@ impl SaftVRQMieRecord {
         viscosity: Option<[f64; 4]>,
         diffusion: Option<[f64; 5]>,
         thermal_conductivity: Option<[f64; 4]>,
-    ) -> SaftVRQMieRecord {
-        SaftVRQMieRecord {
+    ) -> Result<SaftVRQMieRecord, ParameterError> {
+        if m != 1.0 {
+            return Err(ParameterError::IncompatibleParameters(format!(
+                "Segment number `m` is not one. Chain-contributions are currently not supported."
+            )));
+        }
+        Ok(SaftVRQMieRecord {
             m,
             sigma,
             epsilon_k,
@@ -78,7 +82,7 @@ impl SaftVRQMieRecord {
             viscosity,
             diffusion,
             thermal_conductivity,
-        }
+        })
     }
 }
 
@@ -141,20 +145,18 @@ pub struct SaftVRQMieParameters {
     pub viscosity: Option<Array2<f64>>,
     pub diffusion: Option<Array2<f64>>,
     pub thermal_conductivity: Option<Array2<f64>>,
-    pub pure_records: Vec<PureRecord<SaftVRQMieRecord, JobackRecord>>,
-    pub binary_records: Array2<SaftVRQMieBinaryRecord>,
-    pub joback_records: Option<Vec<JobackRecord>>,
+    pub pure_records: Vec<PureRecord<SaftVRQMieRecord>>,
+    pub binary_records: Option<Array2<SaftVRQMieBinaryRecord>>,
     pub fh_ij: Array2<FeynmanHibbsOrder>,
 }
 
 impl Parameter for SaftVRQMieParameters {
     type Pure = SaftVRQMieRecord;
-    type IdealGas = JobackRecord;
     type Binary = SaftVRQMieBinaryRecord;
 
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<SaftVRQMieBinaryRecord>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<SaftVRQMieBinaryRecord>>,
     ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
@@ -174,6 +176,16 @@ impl Parameter for SaftVRQMieParameters {
         for (i, record) in pure_records.iter().enumerate() {
             component_index.insert(record.identifier.clone(), i);
             let r = &record.model_record;
+            if r.m != 1.0 {
+                return Err(
+                    ParameterError::IncompatibleParameters(
+                        format!(
+                            "Segment number `m` for component {} is not one. Chain-contributions are currently not supported.", 
+                            i
+                        )
+                    )
+                );
+            }
             m[i] = r.m;
             sigma[i] = r.sigma;
             epsilon_k[i] = r.epsilon_k;
@@ -188,8 +200,9 @@ impl Parameter for SaftVRQMieParameters {
 
         let mut fh_ij: Array2<FeynmanHibbsOrder> =
             Array2::from_shape_fn((n, n), |(_i, _j)| FeynmanHibbsOrder::FH0);
-        let k_ij = binary_records.map(|br| br.k_ij);
-        let l_ij = binary_records.map(|br| br.l_ij);
+        let br = binary_records.as_ref();
+        let k_ij = br.map_or_else(|| Array2::zeros([n; 2]), |br| br.mapv(|br| br.k_ij));
+        let l_ij = br.map_or_else(|| Array2::zeros([n; 2]), |br| br.mapv(|br| br.l_ij));
         let mut epsilon_k_ij = Array::zeros((n, n));
         let mut sigma_ij = Array::zeros((n, n));
         let mut e_k_ij = Array::zeros((n, n));
@@ -197,7 +210,7 @@ impl Parameter for SaftVRQMieParameters {
         let mut lambda_a_ij = Array::zeros((n, n));
         let mut c_ij = Array::zeros((n, n));
         let mut mass_ij = Array::zeros((n, n));
-        let to_mass_per_molecule = (GRAM / MOL / NAV).to_reduced(KILOGRAM).unwrap();
+        let to_mass_per_molecule = (GRAM / MOL / NAV / KILOGRAM).into_value();
         for i in 0..n {
             for j in 0..n {
                 sigma_ij[[i, j]] = (1.0 - l_ij[[i, j]]) * 0.5 * (sigma[i] + sigma[j]);
@@ -258,11 +271,6 @@ impl Parameter for SaftVRQMieParameters {
             Some(v)
         };
 
-        let joback_records = pure_records
-            .iter()
-            .map(|r| r.ideal_gas_record.clone())
-            .collect();
-
         Ok(Self {
             molarweight,
             m,
@@ -285,7 +293,6 @@ impl Parameter for SaftVRQMieParameters {
             thermal_conductivity: thermal_conductivity_coefficients,
             pure_records,
             binary_records,
-            joback_records,
             fh_ij,
         })
     }
@@ -293,10 +300,10 @@ impl Parameter for SaftVRQMieParameters {
     fn records(
         &self,
     ) -> (
-        &[PureRecord<SaftVRQMieRecord, JobackRecord>],
-        &Array2<SaftVRQMieBinaryRecord>,
+        &[PureRecord<SaftVRQMieRecord>],
+        Option<&Array2<SaftVRQMieBinaryRecord>>,
     ) {
-        (&self.pure_records, &self.binary_records)
+        (&self.pure_records, self.binary_records.as_ref())
     }
 }
 
@@ -345,23 +352,15 @@ impl SaftVRQMieParameters {
     /// - "hydrogen_neon_30K.table" for H-Ne interactions.
     pub fn lammps_tables(
         &self,
-        temperature: SINumber,
+        temperature: Temperature,
         n: usize,
-        r_min: SINumber,
-        r_max: SINumber,
+        r_min: Length,
+        r_max: Length,
     ) -> std::io::Result<()> {
-        let t = temperature.to_reduced(KELVIN).unwrap();
-        let rs = Array1::linspace(
-            r_min.to_reduced(ANGSTROM).unwrap(),
-            r_max.to_reduced(ANGSTROM).unwrap(),
-            n,
-        );
-        let energy_conversion = (KELVIN * RGAS / (KILO * CALORIE / MOL))
-            .into_value()
-            .unwrap();
-        let force_conversion = (KELVIN * RGAS / (KILO * CALORIE / MOL))
-            .into_value()
-            .unwrap();
+        let t = temperature.to_reduced();
+        let rs = Array1::linspace(r_min.to_reduced(), r_max.to_reduced(), n);
+        let energy_conversion = (KELVIN * RGAS / (KILO * CALORIE / MOL)).into_value();
+        let force_conversion = (KELVIN * RGAS / (KILO * CALORIE / MOL)).into_value();
 
         let n_components = self.sigma.len();
         for i in 0..n_components {
@@ -461,7 +460,7 @@ pub mod utils {
                 },
                 "molarweight": 2.0157309551872
             }"#);
-        let hydrogen_record: PureRecord<SaftVRQMieRecord, JobackRecord> =
+        let hydrogen_record: PureRecord<SaftVRQMieRecord> =
             serde_json::from_str(hydrogen_json).expect("Unable to parse json.");
         Arc::new(SaftVRQMieParameters::new_pure(hydrogen_record).unwrap())
     }
@@ -488,7 +487,7 @@ pub mod utils {
                 },
                 "molarweight": 4.002601643881807
             }"#;
-        let helium_record: PureRecord<SaftVRQMieRecord, JobackRecord> =
+        let helium_record: PureRecord<SaftVRQMieRecord> =
             serde_json::from_str(helium_json).expect("Unable to parse json.");
         Arc::new(SaftVRQMieParameters::new_pure(helium_record).unwrap())
     }
@@ -515,7 +514,7 @@ pub mod utils {
                 },
                 "molarweight": 20.17969806457545
             }"#;
-        let neon_record: PureRecord<SaftVRQMieRecord, JobackRecord> =
+        let neon_record: PureRecord<SaftVRQMieRecord> =
             serde_json::from_str(neon_json).expect("Unable to parse json.");
         Arc::new(SaftVRQMieParameters::new_pure(neon_record).unwrap())
     }
@@ -566,7 +565,7 @@ pub mod utils {
                 "molarweight": 20.17969806457545
             }
         ]"#);
-        let binary_record: Vec<PureRecord<SaftVRQMieRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<SaftVRQMieRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         Arc::new(
             SaftVRQMieParameters::new_binary(

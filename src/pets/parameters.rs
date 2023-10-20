@@ -1,9 +1,7 @@
 use crate::hard_sphere::{HardSphereProperties, MonomerShape};
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{Parameter, ParameterError, PureRecord};
 use ndarray::{Array, Array1, Array2};
 use num_dual::DualNum;
-use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -105,7 +103,7 @@ pub struct PetsParameters {
     /// Lennard-Jones energy parameter in Kelvin
     pub epsilon_k: Array1<f64>,
     /// binary interaction parameter
-    pub k_ij: Array2<f64>,
+    pub k_ij: Option<Array2<f64>>,
     /// diameter matrix
     pub sigma_ij: Array2<f64>,
     /// energy parameter matrix including k_ij
@@ -119,21 +117,18 @@ pub struct PetsParameters {
     /// thermal conductivity parameters for entropy scaling
     pub thermal_conductivity: Option<Array2<f64>>,
     /// records of all pure substances of the system
-    pub pure_records: Vec<PureRecord<PetsRecord, JobackRecord>>,
-    /// records of parameters for Joback method
-    pub joback_records: Option<Vec<JobackRecord>>,
+    pub pure_records: Vec<PureRecord<PetsRecord>>,
     /// records of all binary interaction parameters
-    pub binary_records: Array2<PetsBinaryRecord>,
+    pub binary_records: Option<Array2<PetsBinaryRecord>>,
 }
 
 impl Parameter for PetsParameters {
     type Pure = PetsRecord;
-    type IdealGas = JobackRecord;
     type Binary = PetsBinaryRecord;
 
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<PetsBinaryRecord>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<PetsBinaryRecord>>,
     ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
@@ -157,16 +152,18 @@ impl Parameter for PetsParameters {
             molarweight[i] = record.molarweight;
         }
 
-        let k_ij = binary_records.map(|br| br.k_ij);
-        let mut epsilon_k_ij = Array::zeros((n, n));
+        let k_ij = binary_records.as_ref().map(|br| br.map(|br| br.k_ij));
         let mut sigma_ij = Array::zeros((n, n));
         let mut e_k_ij = Array::zeros((n, n));
         for i in 0..n {
             for j in 0..n {
                 e_k_ij[[i, j]] = (epsilon_k[i] * epsilon_k[j]).sqrt();
-                epsilon_k_ij[[i, j]] = (1.0 - k_ij[[i, j]]) * e_k_ij[[i, j]];
                 sigma_ij[[i, j]] = 0.5 * (sigma[i] + sigma[j]);
             }
+        }
+        let mut epsilon_k_ij = e_k_ij.clone();
+        if let Some(k_ij) = k_ij.as_ref() {
+            epsilon_k_ij *= &(1.0 - k_ij);
         }
 
         let viscosity_coefficients = if viscosity.iter().any(|v| v.is_none()) {
@@ -200,11 +197,6 @@ impl Parameter for PetsParameters {
             Some(v)
         };
 
-        let joback_records = pure_records
-            .iter()
-            .map(|r| r.ideal_gas_record.clone())
-            .collect();
-
         Ok(Self {
             molarweight,
             sigma,
@@ -217,18 +209,12 @@ impl Parameter for PetsParameters {
             diffusion: diffusion_coefficients,
             thermal_conductivity: thermal_conductivity_coefficients,
             pure_records,
-            joback_records,
             binary_records,
         })
     }
 
-    fn records(
-        &self,
-    ) -> (
-        &[PureRecord<PetsRecord, JobackRecord>],
-        &Array2<PetsBinaryRecord>,
-    ) {
-        (&self.pure_records, &self.binary_records)
+    fn records(&self) -> (&[PureRecord<PetsRecord>], Option<&Array2<PetsBinaryRecord>>) {
+        (&self.pure_records, self.binary_records.as_ref())
     }
 }
 
@@ -237,7 +223,7 @@ impl HardSphereProperties for PetsParameters {
         MonomerShape::Spherical(self.sigma.len())
     }
 
-    fn hs_diameter<D: DualNum<f64>>(&self, temperature: D) -> Array1<D> {
+    fn hs_diameter<D: DualNum<f64> + Copy>(&self, temperature: D) -> Array1<D> {
         let ti = temperature.recip() * -3.052785558;
         Array::from_shape_fn(self.sigma.len(), |i| {
             -((ti * self.epsilon_k[i]).exp() * 0.127112544 - 1.0) * self.sigma[i]
@@ -275,8 +261,8 @@ impl std::fmt::Display for PetsParameters {
         write!(f, "\n\tmolarweight={}", self.molarweight)?;
         write!(f, "\n\tsigma={}", self.sigma)?;
         write!(f, "\n\tepsilon_k={}", self.epsilon_k)?;
-        if !self.k_ij.iter().all(|k| k.is_zero()) {
-            write!(f, "\n\tk_ij=\n{}", self.k_ij)?;
+        if let Some(k_ij) = self.k_ij.as_ref() {
+            write!(f, "\n\tk_ij=\n{}", k_ij)?;
         }
         write!(f, "\n)")
     }
@@ -285,7 +271,6 @@ impl std::fmt::Display for PetsParameters {
 #[cfg(test)]
 pub mod utils {
     use super::*;
-    use feos_core::joback::JobackRecord;
     use std::sync::Arc;
 
     pub fn argon_parameters() -> Arc<PetsParameters> {
@@ -308,7 +293,7 @@ pub mod utils {
                 },
                 "molarweight": 39.948
             }"#;
-        let argon_record: PureRecord<PetsRecord, JobackRecord> =
+        let argon_record: PureRecord<PetsRecord> =
             serde_json::from_str(argon_json).expect("Unable to parse json.");
         Arc::new(PetsParameters::new_pure(argon_record).unwrap())
     }
@@ -330,7 +315,7 @@ pub mod utils {
                 },
                 "molarweight": 83.798
             }"#;
-        let krypton_record: PureRecord<PetsRecord, JobackRecord> =
+        let krypton_record: PureRecord<PetsRecord> =
             serde_json::from_str(krypton_json).expect("Unable to parse json.");
         Arc::new(PetsParameters::new_pure(krypton_record).unwrap())
     }
@@ -374,7 +359,7 @@ pub mod utils {
                 "molarweight": 83.798
             }
         ]"#;
-        let binary_record: Vec<PureRecord<PetsRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PetsRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         Arc::new(PetsParameters::new_binary(binary_record, None).unwrap())
     }

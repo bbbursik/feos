@@ -1,14 +1,14 @@
 use super::parameters::SaftVRQMieParameters;
 use feos_core::parameter::{Parameter, ParameterError};
+use feos_core::si::*;
 use feos_core::{
-    Contributions, EntropyScaling, EosError, EosResult, EquationOfState, HelmholtzEnergy,
-    MolarWeight, State,
+    Components, EntropyScaling, EosError, EosResult, HelmholtzEnergy, Residual, State,
 };
 use ndarray::Array1;
-use quantity::si::*;
 use std::convert::TryFrom;
 use std::f64::consts::{FRAC_PI_6, PI};
 use std::sync::Arc;
+use typenum::P2;
 
 pub(crate) mod dispersion;
 pub(crate) mod hard_sphere;
@@ -98,7 +98,7 @@ impl SaftVRQMie {
     }
 }
 
-impl EquationOfState for SaftVRQMie {
+impl Components for SaftVRQMie {
     fn components(&self) -> usize {
         self.parameters.pure_records.len()
     }
@@ -109,20 +109,20 @@ impl EquationOfState for SaftVRQMie {
             self.options,
         )
     }
+}
 
+impl Residual for SaftVRQMie {
     fn compute_max_density(&self, moles: &Array1<f64>) -> f64 {
         self.options.max_eta * moles.sum()
             / (FRAC_PI_6 * &self.parameters.m * self.parameters.sigma.mapv(|v| v.powi(3)) * moles)
                 .sum()
     }
 
-    fn residual(&self) -> &[Box<dyn HelmholtzEnergy>] {
+    fn contributions(&self) -> &[Box<dyn HelmholtzEnergy>] {
         &self.contributions
     }
-}
 
-impl MolarWeight for SaftVRQMie {
-    fn molar_weight(&self) -> SIArray1 {
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
         self.parameters.molarweight.clone() * GRAM / MOL
     }
 }
@@ -141,14 +141,14 @@ fn omega22(t: f64) -> f64 {
 
 #[inline]
 fn chapman_enskog_thermal_conductivity(
-    temperature: SINumber,
-    molarweight: SINumber,
+    temperature: Temperature,
+    molarweight: MolarWeight,
     m: f64,
     sigma: f64,
     epsilon_k: f64,
-) -> SINumber {
-    let t = temperature.to_reduced(KELVIN).unwrap();
-    0.083235 * (t * m / molarweight.to_reduced(GRAM / MOL).unwrap()).sqrt()
+) -> ThermalConductivity {
+    let t = temperature.to_reduced();
+    0.083235 * (t * m / (molarweight / (GRAM / MOL)).into_value()).sqrt()
         / sigma.powi(2)
         / omega22(t / epsilon_k)
         * WATT
@@ -159,26 +159,21 @@ fn chapman_enskog_thermal_conductivity(
 impl EntropyScaling for SaftVRQMie {
     fn viscosity_reference(
         &self,
-        temperature: SINumber,
-        _: SINumber,
-        moles: &SIArray1,
-    ) -> EosResult<SINumber> {
+        temperature: Temperature,
+        _: Volume,
+        moles: &Moles<Array1<f64>>,
+    ) -> EosResult<Viscosity> {
         let p = &self.parameters;
         let mw = &p.molarweight;
-        let x = moles.to_reduced(moles.sum())?;
-        let sigma_eff = p.sigma_eff(temperature.to_reduced(KELVIN)?);
-        let epsilon_k_eff = p.epsilon_k_eff(temperature.to_reduced(KELVIN)?);
-        let ce: Array1<SINumber> = (0..self.components())
+        let x = (moles / moles.sum()).into_value();
+        let sigma_eff = p.sigma_eff(temperature.to_reduced());
+        let epsilon_k_eff = p.epsilon_k_eff(temperature.to_reduced());
+        let ce: Array1<_> = (0..self.components())
             .map(|i| {
-                let tr = (temperature / epsilon_k_eff[i] / KELVIN)
-                    .into_value()
-                    .unwrap();
-                5.0 / 16.0
-                    * (mw[i] * GRAM / MOL * KB / NAV * temperature / PI)
-                        .sqrt()
-                        .unwrap()
+                let tr = (temperature / epsilon_k_eff[i] / KELVIN).into_value();
+                5.0 / 16.0 * (mw[i] * GRAM / MOL * KB / NAV * temperature / PI).sqrt()
                     / omega22(tr)
-                    / (sigma_eff[i] * ANGSTROM).powi(2)
+                    / (sigma_eff[i] * ANGSTROM).powi::<P2>()
             })
             .collect();
         let mut ce_mix = 0.0 * MILLI * PASCAL * SECOND;
@@ -186,8 +181,7 @@ impl EntropyScaling for SaftVRQMie {
             let denom: f64 = (0..self.components())
                 .map(|j| {
                     x[j] * (1.0
-                        + (ce[i] / ce[j]).into_value().unwrap().sqrt()
-                            * (mw[j] / mw[i]).powf(1.0 / 4.0))
+                        + (ce[i] / ce[j]).into_value().sqrt() * (mw[j] / mw[i]).powf(1.0 / 4.0))
                     .powi(2)
                         / (8.0 * (1.0 + mw[i] / mw[j])).sqrt()
                 })
@@ -215,24 +209,20 @@ impl EntropyScaling for SaftVRQMie {
 
     fn diffusion_reference(
         &self,
-        temperature: SINumber,
-        volume: SINumber,
-        moles: &SIArray1,
-    ) -> EosResult<SINumber> {
+        temperature: Temperature,
+        volume: Volume,
+        moles: &Moles<Array1<f64>>,
+    ) -> EosResult<Diffusivity> {
         if self.components() != 1 {
             return Err(EosError::IncompatibleComponents(self.components(), 1));
         }
         let p = &self.parameters;
         let density = moles.sum() / volume;
-        let res: Array1<SINumber> = (0..self.components())
+        let res: Array1<_> = (0..self.components())
             .map(|i| {
-                let tr = (temperature / p.epsilon_k[i] / KELVIN)
-                    .into_value()
-                    .unwrap();
-                3.0 / 8.0 / (p.sigma[i] * ANGSTROM).powi(2) / omega11(tr) / (density * NAV)
-                    * (temperature * RGAS / PI / (p.molarweight[i] * GRAM / MOL))
-                        .sqrt()
-                        .unwrap()
+                let tr = (temperature / p.epsilon_k[i] / KELVIN).into_value();
+                3.0 / 8.0 / (p.sigma[i] * ANGSTROM).powi::<P2>() / omega11(tr) / (density * NAV)
+                    * (temperature * RGAS / PI / (p.molarweight[i] * GRAM / MOL)).sqrt()
             })
             .collect();
         Ok(res[0])
@@ -261,26 +251,20 @@ impl EntropyScaling for SaftVRQMie {
     // Equation 4 of DOI: 10.1021/acs.iecr.9b04289
     fn thermal_conductivity_reference(
         &self,
-        temperature: SINumber,
-        volume: SINumber,
-        moles: &SIArray1,
-    ) -> EosResult<SINumber> {
+        temperature: Temperature,
+        volume: Volume,
+        moles: &Moles<Array1<f64>>,
+    ) -> EosResult<ThermalConductivity> {
         if self.components() != 1 {
             return Err(EosError::IncompatibleComponents(self.components(), 1));
         }
         let p = &self.parameters;
         let mws = self.molar_weight();
         let state = State::new_nvt(&Arc::new(Self::new(p.clone())), temperature, volume, moles)?;
-        let res: Array1<SINumber> = (0..self.components())
+        let res: Array1<_> = (0..self.components())
             .map(|i| {
-                let tr = (temperature / p.epsilon_k[i] / KELVIN)
-                    .into_value()
-                    .unwrap();
-                let s_res_reduced = state
-                    .molar_entropy(Contributions::ResidualNvt)
-                    .to_reduced(RGAS)
-                    .unwrap()
-                    / p.m[i];
+                let tr = (temperature / p.epsilon_k[i] / KELVIN).into_value();
+                let s_res_reduced = (state.residual_molar_entropy() / RGAS).into_value() / p.m[i];
                 let ref_ce = chapman_enskog_thermal_conductivity(
                     temperature,
                     mws.get(i),

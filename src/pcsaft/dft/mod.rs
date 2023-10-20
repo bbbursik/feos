@@ -2,15 +2,14 @@ use super::PcSaftParameters;
 use crate::association::Association;
 use crate::hard_sphere::{FMTContribution, FMTVersion};
 use crate::pcsaft::eos::PcSaftOptions;
-use feos_core::joback::Joback;
 use feos_core::parameter::Parameter;
-use feos_core::{IdealGasContribution, MolarWeight};
+use feos_core::si::{MolarWeight, GRAM, MOL};
+use feos_core::Components;
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::solvation::PairPotential;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use ndarray::{Array1, Array2};
 use num_traits::One;
-use quantity::si::*;
 use std::f64::consts::FRAC_PI_6;
 use std::sync::Arc;
 
@@ -29,7 +28,6 @@ pub struct PcSaftFunctional {
     fmt_version: FMTVersion,
     options: PcSaftOptions,
     contributions: Vec<Box<dyn FunctionalContribution>>,
-    joback: Joback,
 }
 
 impl PcSaftFunctional {
@@ -77,7 +75,7 @@ impl PcSaftFunctional {
             contributions.push(Box::new(att));
 
             // Association
-            if !parameters.association.assoc_comp.is_empty() {
+            if !parameters.association.is_empty() {
                 let assoc = Association::new(
                     &parameters,
                     &parameters.association,
@@ -88,31 +86,31 @@ impl PcSaftFunctional {
             }
         }
 
-        let joback = match &parameters.joback_records {
-            Some(joback_records) => Joback::new(joback_records.clone()),
-            None => Joback::default(parameters.m.len()),
-        };
-
-        (Self {
+        DFT(Self {
             parameters,
             fmt_version,
             options: saft_options,
             contributions,
-            joback,
         })
-        .into()
     }
 }
 
-impl HelmholtzEnergyFunctional for PcSaftFunctional {
-    fn subset(&self, component_list: &[usize]) -> DFT<Self> {
+impl Components for PcSaftFunctional {
+    fn components(&self) -> usize {
+        self.parameters.pure_records.len()
+    }
+
+    fn subset(&self, component_list: &[usize]) -> Self {
         Self::with_options(
             Arc::new(self.parameters.subset(component_list)),
             self.fmt_version,
             self.options,
         )
+        .0
     }
+}
 
+impl HelmholtzEnergyFunctional for PcSaftFunctional {
     fn compute_max_density(&self, moles: &Array1<f64>) -> f64 {
         self.options.max_eta * moles.sum()
             / (FRAC_PI_6 * &self.parameters.m * self.parameters.sigma.mapv(|v| v.powi(3)) * moles)
@@ -123,17 +121,11 @@ impl HelmholtzEnergyFunctional for PcSaftFunctional {
         &self.contributions
     }
 
-    fn ideal_gas(&self) -> &dyn IdealGasContribution {
-        &self.joback
-    }
-
     fn molecule_shape(&self) -> MoleculeShape {
         MoleculeShape::NonSpherical(&self.parameters.m)
     }
-}
 
-impl MolarWeight for PcSaftFunctional {
-    fn molar_weight(&self) -> SIArray1 {
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
         self.parameters.molarweight.clone() * GRAM / MOL
     }
 }

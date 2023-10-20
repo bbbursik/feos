@@ -1,13 +1,12 @@
 use crate::{DFTProfile, HelmholtzEnergyFunctional, WeightFunction, WeightFunctionShape};
-use feos_core::{log_iter, log_result, EosError, EosResult, EosUnit, Verbosity};
+use feos_core::si::{Time, SECOND};
+use feos_core::{log_iter, log_result, EosError, EosResult, Verbosity};
+use nalgebra::{DMatrix, DVector};
 use ndarray::prelude::*;
 use ndarray::RemoveAxis;
-use num_dual::linalg::LU;
 use petgraph::graph::Graph;
 use petgraph::visit::EdgeRef;
 use petgraph::Directed;
-use quantity::si::SIUnit;
-use quantity::si::{SIArray1, SECOND};
 use std::collections::VecDeque;
 use std::fmt;
 use std::ops::AddAssign;
@@ -197,7 +196,7 @@ impl DFTSolverLog {
         (&self.residual).into()
     }
 
-    pub fn time(&self) -> SIArray1 {
+    pub fn time(&self) -> Time<Array1<f64>> {
         self.time.iter().map(|t| t.as_secs_f64() * SECOND).collect()
     }
 
@@ -311,9 +310,10 @@ where
             } else {
                 rho + alpha * delta_rho
             };
-            let Ok((_, _, res2, _,_)) =
-                self.euler_lagrange_equation(&rho_new, rho_bulk, logarithm) else {
-                    continue;
+            let Ok((_, _, res2, _, _)) =
+                self.euler_lagrange_equation(&rho_new, rho_bulk, logarithm)
+            else {
+                continue;
             };
             if res2 > res0 {
                 continue;
@@ -325,9 +325,10 @@ where
             } else {
                 rho + 0.5 * alpha * delta_rho
             };
-            let Ok((_, _, res1, _,_)) =
-                self.euler_lagrange_equation(&rho_new, rho_bulk, logarithm) else {
-                    continue;
+            let Ok((_, _, res1, _, _)) =
+                self.euler_lagrange_equation(&rho_new, rho_bulk, logarithm)
+            else {
+                continue;
             };
 
             // estimate minimum
@@ -398,7 +399,7 @@ where
             }
 
             // calculate alpha
-            r = Array::from_shape_fn((m + 1, m + 1), |(i, j)| match (i == m, j == m) {
+            r = DMatrix::from_fn(m + 1, m + 1, |i, j| match (i == m, j == m) {
                 (false, false) => {
                     let (resi, resi_bulk, _) = &resm[i];
                     let (resj, resj_bulk, _) = &resm[j];
@@ -407,9 +408,10 @@ where
                 (true, true) => 0.0,
                 _ => 1.0,
             });
-            alpha = Array::zeros(m + 1);
+            alpha = DVector::zeros(m + 1);
             alpha[m] = 1.0;
-            alpha = LU::new(r)?.solve(&alpha);
+            let alpha = r.lu().solve(&alpha);
+            let alpha = alpha.ok_or(EosError::Error("alpha matrix is not invertible".into()))?;
 
             // update solution
             rho.fill(0.0);
@@ -470,6 +472,8 @@ where
             // update solution
             let lhs = if newton.log { &*rho * res } else { res };
             *rho += &Self::gmres(rhs, &lhs, newton.max_iter_gmres, newton.tol * 1e-2, log)?;
+            rho.mapv_inplace(f64::abs);
+            rho_bulk.mapv_inplace(f64::abs);
         }
 
         Ok((false, newton.max_iter))
@@ -552,9 +556,7 @@ where
         &self,
         density: &Array<f64, D::Larger>,
     ) -> EosResult<Vec<Array<f64, <D::Larger as Dimension>::Larger>>> {
-        let temperature = self
-            .temperature
-            .to_reduced(SIUnit::reference_temperature())?;
+        let temperature = self.temperature.to_reduced();
         let contributions = self.dft.contributions();
         let weighted_densities = self.convolver.weighted_densities(density);
         let mut second_partial_derivatives = Vec::with_capacity(contributions.len());
@@ -613,10 +615,7 @@ where
         exponential: &Array<f64, D::Larger>,
         delta_functional_derivative: &Array<f64, D::Larger>,
     ) -> Array<f64, D::Larger> {
-        let temperature = self
-            .temperature
-            .to_reduced(SIUnit::reference_temperature())
-            .unwrap();
+        let temperature = self.temperature.to_reduced();
 
         // calculate weight functions
         let bond_lengths = self.dft.bond_lengths(temperature).into_edge_type();
@@ -669,12 +668,12 @@ where
                             exponential
                                 .index_axis(Axis(0), edge.target().index())
                                 .to_owned(),
-                            |acc: Array<f64, D>, e| acc * e.weight().as_ref().unwrap(),
+                            |acc: Array<f64, _>, e| acc * e.weight().as_ref().unwrap(),
                         );
                         let delta_i0 = delta_edges.fold(
                             -&delta_functional_derivative
                                 .index_axis(Axis(0), edge.target().index()),
-                            |acc: Array<f64, D>, delta_e| acc + delta_e.weight().as_ref().unwrap(),
+                            |acc: Array<f64, _>, delta_e| acc + delta_e.weight().as_ref().unwrap(),
                         ) * &i0;
                         i1 = Some(
                             self.convolver

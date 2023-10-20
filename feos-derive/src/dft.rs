@@ -20,13 +20,11 @@ pub(crate) fn expand_helmholtz_energy_functional(
 
     let from = impl_from(variants)?;
     let functional = impl_helmholtz_energy_functional(variants)?;
-    let molar_weight = impl_molar_weight(variants)?;
     let fluid_parameters = impl_fluid_parameters(variants)?;
     let pair_potential = impl_pair_potential(variants)?;
     Ok(quote! {
         #from
         #functional
-        #molar_weight
         #fluid_parameters
         #pair_potential
     })
@@ -82,12 +80,6 @@ fn impl_from(
 fn impl_helmholtz_energy_functional(
     variants: &syn::punctuated::Punctuated<syn::Variant, syn::token::Comma>,
 ) -> syn::Result<proc_macro2::TokenStream> {
-    let subset = variants.iter().map(|v| {
-        let name = &v.ident;
-        quote! {
-            Self::#name(functional) => functional.subset(component_list).into()
-        }
-    });
     let molecule_shape = variants.iter().map(|v| {
         let name = &v.ident;
         quote! {
@@ -106,12 +98,16 @@ fn impl_helmholtz_energy_functional(
             Self::#name(functional) => functional.contributions()
         }
     });
-    let ideal_gas = variants.iter().map(|v| {
-        let name = &v.ident;
-        quote! {
-            Self::#name(functional) => functional.ideal_gas()
+
+    let mut molar_weight = Vec::new();
+    for v in variants.iter() {
+        if implement("molar_weight", v, &OPT_IMPLS)? {
+            let name = &v.ident;
+            molar_weight.push(quote! {
+                Self::#name(functional) => functional.molar_weight()
+            });
         }
-    });
+    }
 
     let mut bond_lengths = Vec::new();
     for v in variants.iter() {
@@ -125,11 +121,6 @@ fn impl_helmholtz_energy_functional(
 
     Ok(quote! {
         impl HelmholtzEnergyFunctional for FunctionalVariant {
-            fn subset(&self, component_list: &[usize]) -> DFT<Self> {
-                match self {
-                    #(#subset,)*
-                }
-            }
             fn molecule_shape(&self) -> MoleculeShape {
                 match self {
                     #(#molecule_shape,)*
@@ -145,40 +136,16 @@ fn impl_helmholtz_energy_functional(
                     #(#contributions,)*
                 }
             }
-            fn ideal_gas(&self) -> &dyn IdealGasContribution {
+            fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
                 match self {
-                    #(#ideal_gas,)*
+                    #(#molar_weight,)*
+                    _ => unimplemented!()
                 }
             }
             fn bond_lengths(&self, temperature: f64) -> UnGraph<(), f64> {
                 match self {
                     #(#bond_lengths,)*
                     _ => Graph::with_capacity(0, 0),
-                }
-            }
-        }
-    })
-}
-
-fn impl_molar_weight(
-    variants: &syn::punctuated::Punctuated<syn::Variant, syn::token::Comma>,
-) -> syn::Result<proc_macro2::TokenStream> {
-    let mut molar_weight = Vec::new();
-
-    for v in variants.iter() {
-        if implement("molar_weight", v, &OPT_IMPLS)? {
-            let name = &v.ident;
-            molar_weight.push(quote! {
-                Self::#name(functional) => functional.molar_weight()
-            });
-        }
-    }
-    Ok(quote! {
-        impl MolarWeight for FunctionalVariant {
-            fn molar_weight(&self) -> SIArray1 {
-                match self {
-                    #(#molar_weight,)*
-                    _ => unimplemented!()
                 }
             }
         }

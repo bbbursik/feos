@@ -1,10 +1,7 @@
 use super::parameters::*;
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::*;
-use feos_core::python::joback::PyJobackRecord;
 use feos_core::python::parameter::*;
 use feos_core::{impl_binary_record, impl_json_handling, impl_parameter, impl_pure_record};
-use ndarray::Array2;
 use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::{PyTypeError, PyValueError};
 use pyo3::prelude::*;
@@ -69,7 +66,7 @@ impl PyPetsRecord {
 }
 
 impl_json_handling!(PyPetsRecord);
-impl_pure_record!(PetsRecord, PyPetsRecord, JobackRecord, PyJobackRecord);
+impl_pure_record!(PetsRecord, PyPetsRecord);
 
 #[pyclass(name = "PetsBinaryRecord")]
 #[pyo3(
@@ -180,16 +177,12 @@ impl PyPetsParameters {
                     identifier,
                     molarweight.as_ref().map_or(1.0, |v| v[i]),
                     model_record,
-                    None,
                 )
                 // Hier Ideal Gas anstatt None???
             })
             .collect();
 
-        let binary = match k_ij {
-            Some(v) => v.to_owned_array().mapv(f64::into),
-            None => Array2::from_shape_fn((n, n), |(_, _)| PetsBinaryRecord::from(0.0)),
-        };
+        let binary = k_ij.map(|v| v.to_owned_array().mapv(f64::into));
 
         Ok(Self(Arc::new(PetsParameters::from_records(
             pure_records,
@@ -239,14 +232,13 @@ impl PyPetsParameters {
             ),
             molarweight.map_or(1.0, |v| v),
             PetsRecord::new(sigma, epsilon_k, viscosity, diffusion, thermal_conductivity),
-            None,
         );
         Ok(Self(Arc::new(PetsParameters::new_pure(pure_record)?)))
     }
 
     #[getter]
-    fn get_k_ij<'py>(&self, py: Python<'py>) -> &'py PyArray2<f64> {
-        self.0.k_ij.view().to_pyarray(py)
+    fn get_k_ij<'py>(&self, py: Python<'py>) -> Option<&'py PyArray2<f64>> {
+        self.0.k_ij.as_ref().map(|k| k.view().to_pyarray(py))
     }
 
     fn _repr_markdown_(&self) -> String {
@@ -258,14 +250,18 @@ impl PyPetsParameters {
     }
 }
 
-impl_parameter!(PetsParameters, PyPetsParameters);
+impl_parameter!(
+    PetsParameters,
+    PyPetsParameters,
+    PyPetsRecord,
+    PyPetsBinaryRecord
+);
 
 #[pymodule]
 pub fn pets(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyIdentifier>()?;
     m.add_class::<IdentifierOption>()?;
     m.add_class::<PyChemicalRecord>()?;
-    m.add_class::<PyJobackRecord>()?;
 
     m.add_class::<PyPetsRecord>()?;
     m.add_class::<PyPureRecord>()?;

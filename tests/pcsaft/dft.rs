@@ -3,14 +3,16 @@
 use approx::assert_relative_eq;
 use feos::hard_sphere::FMTVersion;
 use feos::pcsaft::{PcSaft, PcSaftFunctional, PcSaftParameters};
+use feos_core::joback::{Joback, JobackParameters};
 use feos_core::parameter::{IdentifierOption, Parameter};
+use feos_core::si::*;
 use feos_core::{Contributions, PhaseEquilibrium, State, Verbosity};
 use feos_dft::interface::PlanarInterface;
 use feos_dft::DFTSolver;
 use ndarray::{arr1, Axis};
-use quantity::si::*;
 use std::error::Error;
 use std::sync::Arc;
+use typenum::P3;
 
 #[test]
 #[allow(non_snake_case)]
@@ -32,7 +34,7 @@ fn test_bulk_implementations() -> Result<(), Box<dyn Error>> {
         FMTVersion::KierlikRosinberg,
     ));
     let t = 300.0 * KELVIN;
-    let v = 0.002 * METER.powi(3) * NAV / NAV_old;
+    let v = 0.002 * METER.powi::<P3>() * NAV / NAV_old;
     let n = arr1(&[1.5]) * MOL;
     let state = State::new_nvt(&eos, t, v, &n)?;
     let state_pure = State::new_nvt(&func_pure, t, v, &n)?;
@@ -113,10 +115,10 @@ fn test_dft_propane() -> Result<(), Box<dyn Error>> {
     let vle_pure = PhaseEquilibrium::pure(&func_pure, t, None, Default::default())?;
     let vle_full = PhaseEquilibrium::pure(&func_full, t, None, Default::default())?;
     let vle_full_vec = PhaseEquilibrium::pure(&func_full_vec, t, None, Default::default())?;
-    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false)?.solve(None)?;
-    let profile_full = PlanarInterface::from_tanh(&vle_full, points, w, tc, false)?.solve(None)?;
+    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false).solve(None)?;
+    let profile_full = PlanarInterface::from_tanh(&vle_full, points, w, tc, false).solve(None)?;
     let profile_full_vec =
-        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false)?.solve(None)?;
+        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false).solve(None)?;
     let _ = func_pure.solve_pdgt(&vle_pure, 198, 0, None)?;
     println!(
         "pure {} {} {} {}",
@@ -140,7 +142,7 @@ fn test_dft_propane() -> Result<(), Box<dyn Error>> {
         func_full_vec.solve_pdgt(&vle_full_vec, 198, 0, None)?.1
     );
 
-    let vapor_density = 12.2557486248527745 * MOL / METER.powi(3) * NAV_old / NAV;
+    let vapor_density = 12.2557486248527745 * MOL / METER.powi::<P3>() * NAV_old / NAV;
     assert_relative_eq!(
         vle_pure.vapor().density,
         vapor_density,
@@ -157,7 +159,7 @@ fn test_dft_propane() -> Result<(), Box<dyn Error>> {
         max_relative = 1e-13,
     );
 
-    let liquid_density = 13.8941749145544549 * KILO * MOL / METER.powi(3) * NAV_old / NAV;
+    let liquid_density = 13.8941749145544549 * KILO * MOL / METER.powi::<P3>() * NAV_old / NAV;
     assert_relative_eq!(
         vle_pure.liquid().density,
         liquid_density,
@@ -228,9 +230,9 @@ fn test_dft_propane_newton() -> Result<(), Box<dyn Error>> {
     let tc = State::critical_point(&func, None, None, Default::default())?.temperature;
     let vle = PhaseEquilibrium::pure(&func, t, None, Default::default())?;
     let solver = DFTSolver::new(Some(Verbosity::Iter)).newton(None, None, None, None);
-    PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(Some(&solver))?;
+    PlanarInterface::from_tanh(&vle, points, w, tc, false).solve(Some(&solver))?;
     let solver = DFTSolver::new(Some(Verbosity::Iter)).newton(Some(true), None, None, None);
-    PlanarInterface::from_tanh(&vle, points, w, tc, false)?.solve(Some(&solver))?;
+    PlanarInterface::from_tanh(&vle, points, w, tc, false).solve(Some(&solver))?;
     Ok(())
 }
 
@@ -255,9 +257,9 @@ fn test_dft_water() -> Result<(), Box<dyn Error>> {
     let tc = State::critical_point(&func_pure, None, None, Default::default())?.temperature;
     let vle_pure = PhaseEquilibrium::pure(&func_pure, t, None, Default::default())?;
     let vle_full_vec = PhaseEquilibrium::pure(&func_full_vec, t, None, Default::default())?;
-    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false)?.solve(None)?;
+    let profile_pure = PlanarInterface::from_tanh(&vle_pure, points, w, tc, false).solve(None)?;
     let profile_full_vec =
-        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false)?.solve(None)?;
+        PlanarInterface::from_tanh(&vle_full_vec, points, w, tc, false).solve(None)?;
     println!(
         "pure {} {} {}",
         profile_pure.surface_tension.unwrap(),
@@ -271,7 +273,7 @@ fn test_dft_water() -> Result<(), Box<dyn Error>> {
         vle_full_vec.liquid().density
     );
 
-    let vapor_density = 75.8045715345905222 * MOL / METER.powi(3) * NAV_old / NAV;
+    let vapor_density = 75.8045715345905222 * MOL / METER.powi::<P3>() * NAV_old / NAV;
     assert_relative_eq!(
         vle_pure.vapor().density,
         vapor_density,
@@ -283,7 +285,7 @@ fn test_dft_water() -> Result<(), Box<dyn Error>> {
         max_relative = 1e-13,
     );
 
-    let liquid_density = 47.8480850281608454 * KILO * MOL / METER.powi(3) * NAV_old / NAV;
+    let liquid_density = 47.8480850281608454 * KILO * MOL / METER.powi::<P3>() * NAV_old / NAV;
     assert_relative_eq!(
         vle_pure.liquid().density,
         liquid_density,
@@ -329,12 +331,17 @@ fn test_entropy_bulk_values() -> Result<(), Box<dyn Error>> {
         None,
         IdentifierOption::Name,
     )?;
-    let func = Arc::new(PcSaftFunctional::new(Arc::new(params)));
+    let joback_params = JobackParameters::from_json(
+        vec!["water_np"],
+        "tests/pcsaft/test_parameters_joback.json",
+        None,
+        IdentifierOption::Name,
+    )?;
+    let joback = Joback::new(Arc::new(joback_params));
+    let func = Arc::new(PcSaftFunctional::new(Arc::new(params)).ideal_gas(joback));
     let vle = PhaseEquilibrium::pure(&func, 350.0 * KELVIN, None, Default::default())?;
     let profile = PlanarInterface::from_pdgt(&vle, 2048, false)?.solve(None)?;
-    let s_res = profile
-        .profile
-        .entropy_density(Contributions::ResidualNvt)?;
+    let s_res = profile.profile.entropy_density(Contributions::Residual)?;
     let s_tot = profile.profile.entropy_density(Contributions::Total)?;
     println!(
         "Density:\n{}",
@@ -345,26 +352,26 @@ fn test_entropy_bulk_values() -> Result<(), Box<dyn Error>> {
         profile.vle.liquid().density,
         profile.vle.vapor().density
     );
-    println!("\nResidual:\n{}", s_res);
+    println!("\nResidual:\n{:?}", s_res);
     println!(
-        "liquid: {}, vapor: {}",
-        profile.vle.liquid().entropy(Contributions::ResidualNvt) / profile.vle.liquid().volume,
-        profile.vle.vapor().entropy(Contributions::ResidualNvt) / profile.vle.vapor().volume
+        "liquid: {:?}, vapor: {:?}",
+        profile.vle.liquid().entropy(Contributions::Residual) / profile.vle.liquid().volume,
+        profile.vle.vapor().entropy(Contributions::Residual) / profile.vle.vapor().volume
     );
-    println!("\nTotal:\n{}", s_tot);
+    println!("\nTotal:\n{:?}", s_tot);
     println!(
-        "liquid: {}, vapor: {}",
+        "liquid: {:?}, vapor: {:?}",
         profile.vle.liquid().entropy(Contributions::Total) / profile.vle.liquid().volume,
         profile.vle.vapor().entropy(Contributions::Total) / profile.vle.vapor().volume
     );
     assert_relative_eq!(
         s_res.get(0),
-        profile.vle.liquid().entropy(Contributions::ResidualNvt) / profile.vle.liquid().volume,
+        profile.vle.liquid().entropy(Contributions::Residual) / profile.vle.liquid().volume,
         max_relative = 1e-8,
     );
     assert_relative_eq!(
         s_res.get(2047),
-        profile.vle.vapor().entropy(Contributions::ResidualNvt) / profile.vle.vapor().volume,
+        profile.vle.vapor().entropy(Contributions::Residual) / profile.vle.vapor().volume,
         max_relative = 1e-8,
     );
     assert_relative_eq!(

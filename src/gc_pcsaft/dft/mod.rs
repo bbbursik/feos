@@ -2,13 +2,13 @@ use super::eos::GcPcSaftOptions;
 use crate::association::Association;
 use crate::hard_sphere::{FMTContribution, FMTVersion, HardSphereProperties, MonomerShape};
 use feos_core::parameter::ParameterHetero;
-use feos_core::MolarWeight;
+use feos_core::si::{MolarWeight, GRAM, MOL};
+use feos_core::Components;
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use ndarray::Array1;
 use num_dual::DualNum;
 use petgraph::graph::UnGraph;
-use quantity::si::{SIArray1, GRAM, MOL};
 use std::f64::consts::FRAC_PI_6;
 use std::sync::Arc;
 
@@ -56,7 +56,7 @@ impl GcPcSaftFunctional {
         contributions.push(Box::new(att));
 
         // Association
-        if !parameters.association.assoc_comp.is_empty() {
+        if !parameters.association.is_empty() {
             let assoc = Association::new(
                 &parameters,
                 &parameters.association,
@@ -66,27 +66,33 @@ impl GcPcSaftFunctional {
             contributions.push(Box::new(assoc));
         }
 
-        (Self {
+        DFT(Self {
             parameters,
             fmt_version,
             options: saft_options,
             contributions,
         })
-        .into()
+    }
+}
+
+impl Components for GcPcSaftFunctional {
+    fn components(&self) -> usize {
+        self.parameters.chemical_records.len()
+    }
+
+    fn subset(&self, component_list: &[usize]) -> Self {
+        Self::with_options(
+            Arc::new(self.parameters.subset(component_list)),
+            self.fmt_version,
+            self.options,
+        )
+        .0
     }
 }
 
 impl HelmholtzEnergyFunctional for GcPcSaftFunctional {
     fn molecule_shape(&self) -> MoleculeShape {
         MoleculeShape::Heterosegmented(&self.parameters.component_index)
-    }
-
-    fn subset(&self, component_list: &[usize]) -> DFT<Self> {
-        Self::with_options(
-            Arc::new(self.parameters.subset(component_list)),
-            self.fmt_version,
-            self.options,
-        )
     }
 
     fn compute_max_density(&self, moles: &Array1<f64>) -> f64 {
@@ -98,6 +104,10 @@ impl HelmholtzEnergyFunctional for GcPcSaftFunctional {
 
     fn contributions(&self) -> &[Box<dyn FunctionalContribution>] {
         &self.contributions
+    }
+
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
+        self.parameters.molarweight.clone() * GRAM / MOL
     }
 
     fn bond_lengths(&self, temperature: f64) -> UnGraph<(), f64> {
@@ -116,19 +126,13 @@ impl HelmholtzEnergyFunctional for GcPcSaftFunctional {
     }
 }
 
-impl MolarWeight for GcPcSaftFunctional {
-    fn molar_weight(&self) -> SIArray1 {
-        self.parameters.molarweight.clone() * GRAM / MOL
-    }
-}
-
 impl HardSphereProperties for GcPcSaftFunctionalParameters {
     fn monomer_shape<N: DualNum<f64>>(&self, _: N) -> MonomerShape<N> {
         let m = self.m.mapv(N::from);
         MonomerShape::Heterosegmented([m.clone(), m.clone(), m.clone(), m], &self.component_index)
     }
 
-    fn hs_diameter<D: DualNum<f64>>(&self, temperature: D) -> Array1<D> {
+    fn hs_diameter<D: DualNum<f64> + Copy>(&self, temperature: D) -> Array1<D> {
         let ti = temperature.recip() * -3.0;
         Array1::from_shape_fn(self.sigma.len(), |i| {
             -((ti * self.epsilon_k[i]).exp() * 0.12 - 1.0) * self.sigma[i]

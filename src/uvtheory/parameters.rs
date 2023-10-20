@@ -93,12 +93,12 @@ lazy_static! {
 }
 
 #[inline]
-pub fn mie_prefactor<D: DualNum<f64>>(rep: D, att: D) -> D {
+pub fn mie_prefactor<D: DualNum<f64> + Copy>(rep: D, att: D) -> D {
     rep / (rep - att) * (rep / att).powd(att / (rep - att))
 }
 
 #[inline]
-pub fn mean_field_constant<D: DualNum<f64>>(rep: D, att: D, x: D) -> D {
+pub fn mean_field_constant<D: DualNum<f64> + Copy>(rep: D, att: D, x: D) -> D {
     mie_prefactor(rep, att) * (x.powd(-att + 3.0) / (att - 3.0) - x.powd(-rep + 3.0) / (rep - 3.0))
 }
 
@@ -111,25 +111,24 @@ pub struct UVParameters {
     pub sigma: Array1<f64>,
     pub epsilon_k: Array1<f64>,
     pub molarweight: Array1<f64>,
-    pub k_ij: Array2<f64>,
+    pub k_ij: Option<Array2<f64>>,
     pub rep_ij: Array2<f64>,
     pub att_ij: Array2<f64>,
     pub sigma_ij: Array2<f64>,
     pub eps_k_ij: Array2<f64>,
     pub cd_bh_pure: Vec<Array1<f64>>,
     pub cd_bh_binary: Array2<Array1<f64>>,
-    pub pure_records: Vec<PureRecord<UVRecord, NoRecord>>,
-    pub binary_records: Array2<UVBinaryRecord>,
+    pub pure_records: Vec<PureRecord<UVRecord>>,
+    pub binary_records: Option<Array2<UVBinaryRecord>>,
 }
 
 impl Parameter for UVParameters {
     type Pure = UVRecord;
-    type IdealGas = NoRecord;
     type Binary = UVBinaryRecord;
 
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<Self::Binary>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<Self::Binary>>,
     ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
@@ -155,7 +154,7 @@ impl Parameter for UVParameters {
         let mut att_ij = Array2::zeros((n, n));
         let mut sigma_ij = Array2::zeros((n, n));
         let mut eps_k_ij = Array2::zeros((n, n));
-        let k_ij = binary_records.map(|br| br.k_ij);
+        let k_ij = binary_records.as_ref().map(|br| br.map(|br| br.k_ij));
 
         for i in 0..n {
             rep_ij[[i, i]] = rep[i];
@@ -169,7 +168,8 @@ impl Parameter for UVParameters {
                 att_ij[[j, i]] = att_ij[[i, j]];
                 sigma_ij[[i, j]] = 0.5 * (sigma[i] + sigma[j]);
                 sigma_ij[[j, i]] = sigma_ij[[i, j]];
-                eps_k_ij[[i, j]] = (1.0 - k_ij[[i, j]]) * (epsilon_k[i] * epsilon_k[j]).sqrt();
+                eps_k_ij[[i, j]] = (1.0 - k_ij.as_ref().map_or(0.0, |k_ij| k_ij[[i, j]]))
+                    * (epsilon_k[i] * epsilon_k[j]).sqrt();
                 eps_k_ij[[j, i]] = eps_k_ij[[i, j]];
             }
         }
@@ -198,8 +198,8 @@ impl Parameter for UVParameters {
         })
     }
 
-    fn records(&self) -> (&[PureRecord<UVRecord, NoRecord>], &Array2<UVBinaryRecord>) {
-        (&self.pure_records, &self.binary_records)
+    fn records(&self) -> (&[PureRecord<UVRecord>], Option<&Array2<UVBinaryRecord>>) {
+        (&self.pure_records, self.binary_records.as_ref())
     }
 }
 
@@ -212,7 +212,7 @@ impl UVParameters {
         epsilon_k: f64,
     ) -> Result<Self, ParameterError> {
         let model_record = UVRecord::new(rep, att, sigma, epsilon_k);
-        let pure_record = PureRecord::new(Identifier::default(), 1.0, model_record, None);
+        let pure_record = PureRecord::new(Identifier::default(), 1.0, model_record);
         Self::new_pure(pure_record)
     }
 
@@ -261,7 +261,7 @@ pub mod utils {
     pub fn test_parameters(rep: f64, att: f64, sigma: f64, epsilon: f64) -> UVParameters {
         let identifier = Identifier::new(Some("1"), None, None, None, None, None);
         let model_record = UVRecord::new(rep, att, sigma, epsilon);
-        let pr = PureRecord::new(identifier, 1.0, model_record, None);
+        let pr = PureRecord::new(identifier, 1.0, model_record);
         UVParameters::new_pure(pr).unwrap()
     }
 
@@ -273,11 +273,11 @@ pub mod utils {
     ) -> UVParameters {
         let identifier = Identifier::new(Some("1"), None, None, None, None, None);
         let model_record = UVRecord::new(rep[0], att[0], sigma[0], epsilon[0]);
-        let pr1 = PureRecord::new(identifier, 1.0, model_record, None);
+        let pr1 = PureRecord::new(identifier, 1.0, model_record);
         //
         let identifier2 = Identifier::new(Some("1"), None, None, None, None, None);
         let model_record2 = UVRecord::new(rep[1], att[1], sigma[1], epsilon[1]);
-        let pr2 = PureRecord::new(identifier2, 1.0, model_record2, None);
+        let pr2 = PureRecord::new(identifier2, 1.0, model_record2);
         let pure_records = vec![pr1, pr2];
         UVParameters::new_binary(pure_records, None).unwrap()
     }
@@ -285,7 +285,7 @@ pub mod utils {
     pub fn methane_parameters(rep: f64, att: f64) -> UVParameters {
         let identifier = Identifier::new(Some("1"), None, None, None, None, None);
         let model_record = UVRecord::new(rep, att, 3.7039, 150.03);
-        let pr = PureRecord::new(identifier, 1.0, model_record, None);
+        let pr = PureRecord::new(identifier, 1.0, model_record);
         UVParameters::new_pure(pr).unwrap()
     }
 }

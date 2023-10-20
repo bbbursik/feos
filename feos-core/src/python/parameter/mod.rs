@@ -201,6 +201,12 @@ macro_rules! impl_binary_record {
         #[derive(Clone)]
         pub struct PyBinaryRecord(pub BinaryRecord<Identifier, $model_record>);
 
+        impl From<$py_model_record> for $model_record {
+            fn from(record: $py_model_record) -> Self {
+                record.0
+            }
+        }
+
         #[pymethods]
         impl PyBinaryRecord {
             #[new]
@@ -324,7 +330,7 @@ impl PyBinarySegmentRecord {
     /// [BinarySegmentRecord]
     #[staticmethod]
     #[pyo3(text_signature = "(path)")]
-    fn from_json(path: &str) -> Result<Vec<Self>, ParameterError> {
+    pub fn from_json(path: &str) -> Result<Vec<Self>, ParameterError> {
         Ok(BinaryRecord::from_json(path)?
             .into_iter()
             .map(Self)
@@ -370,7 +376,7 @@ impl_json_handling!(PyBinarySegmentRecord);
 
 #[macro_export]
 macro_rules! impl_pure_record {
-    ($model_record:ident, $py_model_record:ident, $ideal_gas_record:ident, $py_ideal_gas_record:ident) => {
+    ($model_record:ident, $py_model_record:ident) => {
         /// All information required to characterize a pure component.
         ///
         /// Parameters
@@ -381,16 +387,14 @@ macro_rules! impl_pure_record {
         ///     The molar weight (in g/mol) of the pure component.
         /// model_record : ModelRecord
         ///     The pure component model parameters.
-        /// ideal_gas_record: IdealGasRecord, optional
-        ///     The pure component parameters for the ideal gas model.
         ///
         /// Returns
         /// -------
         /// PureRecord
         #[pyclass(name = "PureRecord")]
-        #[pyo3(text_signature = "(identifier, molarweight, model_record, ideal_gas_record=None)")]
+        #[pyo3(text_signature = "(identifier, molarweight, model_record)")]
         #[derive(Clone)]
-        pub struct PyPureRecord(pub PureRecord<$model_record, $ideal_gas_record>);
+        pub struct PyPureRecord(pub PureRecord<$model_record>);
 
         #[pymethods]
         impl PyPureRecord {
@@ -399,13 +403,11 @@ macro_rules! impl_pure_record {
                 identifier: PyIdentifier,
                 molarweight: f64,
                 model_record: $py_model_record,
-                ideal_gas_record: Option<$py_ideal_gas_record>,
             ) -> PyResult<Self> {
                 Ok(Self(PureRecord::new(
                     identifier.0,
                     molarweight,
                     model_record.0,
-                    ideal_gas_record.map(|ig| ig.0),
                 )))
             }
 
@@ -439,16 +441,6 @@ macro_rules! impl_pure_record {
                 self.0.model_record = model_record.0;
             }
 
-            #[getter]
-            fn get_ideal_gas_record(&self) -> Option<$py_ideal_gas_record> {
-                self.0.ideal_gas_record.clone().map($py_ideal_gas_record)
-            }
-
-            #[setter]
-            fn set_ideal_gas_record(&mut self, ideal_gas_record: $py_ideal_gas_record) {
-                self.0.ideal_gas_record = Some(ideal_gas_record.0);
-            }
-
             fn __repr__(&self) -> PyResult<String> {
                 Ok(self.0.to_string())
             }
@@ -460,7 +452,7 @@ macro_rules! impl_pure_record {
 
 #[macro_export]
 macro_rules! impl_segment_record {
-    ($model_record:ident, $py_model_record:ident, $ideal_gas_record:ident, $py_ideal_gas_record:ident) => {
+    ($model_record:ident, $py_model_record:ident) => {
         /// All information required to characterize a single segment.
         ///
         /// Parameters
@@ -471,16 +463,14 @@ macro_rules! impl_segment_record {
         ///     The molar weight (in g/mol) of the segment.
         /// model_record : ModelRecord
         ///     The segment model parameters.
-        /// ideal_gas_record: IdealGasRecord, optional
-        ///     The segment ideal gas parameters.
         ///
         /// Returns
         /// -------
         /// SegmentRecord
         #[pyclass(name = "SegmentRecord")]
-        #[pyo3(text_signature = "(identifier, molarweight, model_record, ideal_gas_record=None)")]
+        #[pyo3(text_signature = "(identifier, molarweight)")]
         #[derive(Clone)]
-        pub struct PySegmentRecord(SegmentRecord<$model_record, $ideal_gas_record>);
+        pub struct PySegmentRecord(SegmentRecord<$model_record>);
 
         #[pymethods]
         impl PySegmentRecord {
@@ -489,13 +479,11 @@ macro_rules! impl_segment_record {
                 identifier: String,
                 molarweight: f64,
                 model_record: $py_model_record,
-                ideal_gas_record: Option<$py_ideal_gas_record>,
             ) -> PyResult<Self> {
                 Ok(Self(SegmentRecord::new(
                     identifier,
                     molarweight,
                     model_record.0,
-                    ideal_gas_record.map(|ig| ig.0),
                 )))
             }
 
@@ -547,16 +535,6 @@ macro_rules! impl_segment_record {
                 self.0.model_record = model_record.0;
             }
 
-            #[getter]
-            fn get_ideal_gas_record(&self) -> Option<$py_ideal_gas_record> {
-                self.0.ideal_gas_record.clone().map($py_ideal_gas_record)
-            }
-
-            #[setter]
-            fn set_ideal_gas_record(&mut self, ideal_gas_record: $py_ideal_gas_record) {
-                self.0.ideal_gas_record = Some(ideal_gas_record.0);
-            }
-
             fn __repr__(&self) -> PyResult<String> {
                 Ok(self.0.to_string())
             }
@@ -568,7 +546,7 @@ macro_rules! impl_segment_record {
 
 #[macro_export]
 macro_rules! impl_parameter {
-    ($parameter:ty, $py_parameter:ty) => {
+    ($parameter:ty, $py_parameter:ty, $py_model_record:ty, $py_binary_model_record:ty) => {
         #[pymethods]
         impl $py_parameter {
             /// Creates parameters from records.
@@ -593,32 +571,26 @@ macro_rules! impl_parameter {
                 search_option: IdentifierOption,
             ) -> PyResult<Self> {
                 let prs = pure_records.into_iter().map(|pr| pr.0).collect();
-                if let Some(binary_records) = binary_records {
-                    let brs = if let Ok(br) = binary_records.extract::<PyReadonlyArray2<f64>>() {
-                        Ok(br.to_owned_array().mapv(|r| r.try_into().unwrap()))
-                    } else if let Ok(br) = binary_records.extract::<Vec<PyBinaryRecord>>() {
-                        let brs: Vec<_> = br.into_iter().map(|br| br.0).collect();
-                        Ok(<$parameter>::binary_matrix_from_records(
-                            &prs,
-                            &brs,
-                            search_option,
-                        )?)
-                    } else {
-                        Err(PyErr::new::<PyTypeError, _>(format!(
-                            "Could not parse binary input!"
-                        )))
-                    };
-                    Ok(Self(Arc::new(<$parameter>::from_records(
-                        prs,
-                        brs.unwrap(),
-                    )?)))
-                } else {
-                    let n = prs.len();
-                    Ok(Self(Arc::new(<$parameter>::from_records(
-                        prs,
-                        Array2::from_elem([n, n], <$parameter as Parameter>::Binary::default()),
-                    )?)))
-                }
+                let binary_records = binary_records
+                    .map(|binary_records| {
+                        if let Ok(br) = binary_records.extract::<PyReadonlyArray2<f64>>() {
+                            Ok(Some(br.to_owned_array().mapv(|r| r.try_into().unwrap())))
+                        } else if let Ok(br) = binary_records.extract::<Vec<PyBinaryRecord>>() {
+                            let brs: Vec<_> = br.into_iter().map(|br| br.0).collect();
+                            Ok(<$parameter>::binary_matrix_from_records(
+                                &prs,
+                                &brs,
+                                search_option,
+                            ))
+                        } else {
+                            Err(PyErr::new::<PyTypeError, _>(format!(
+                                "Could not parse binary input!"
+                            )))
+                        }
+                    })
+                    .transpose()?
+                    .flatten();
+                Ok(Self(Arc::new(Parameter::from_records(prs, binary_records)?)))
             }
 
             /// Creates parameters for a pure component from a pure record.
@@ -652,8 +624,8 @@ macro_rules! impl_parameter {
                     .map(|br| {
                         if let Ok(r) = br.extract::<f64>() {
                             Ok(r.try_into()?)
-                        } else if let Ok(r) = br.extract::<PyBinaryRecord>() {
-                            Ok(r.0.model_record)
+                        } else if let Ok(r) = br.extract::<$py_binary_model_record>() {
+                            Ok(r.into())
                         } else {
                             Err(PyErr::new::<PyTypeError, _>(format!(
                                 "Could not parse binary input!"
@@ -662,6 +634,19 @@ macro_rules! impl_parameter {
                     })
                     .transpose()?;
                 Ok(Self(Arc::new(<$parameter>::new_binary(prs, br)?)))
+            }
+
+            /// Creates parameters from model records with default values for the molar weight,
+            /// identifiers, and binary interaction parameters.
+            ///
+            /// Parameters
+            /// ----------
+            /// model_records : [ModelRecord]
+            ///     A list of model parameters.
+            #[staticmethod]
+            fn from_model_records(model_records: Vec<$py_model_record>) -> PyResult<Self> {
+                let mrs = model_records.into_iter().map(|mr| mr.0).collect();
+                Ok(Self(Arc::new(<$parameter>::from_model_records(mrs)?)))
             }
 
             /// Creates parameters from json files.
@@ -734,13 +719,11 @@ macro_rules! impl_parameter {
             }
 
             #[getter]
-            fn get_binary_records<'py>(&self, py: Python<'py>) -> &'py PyArray2<f64> {
+            fn get_binary_records<'py>(&self, py: Python<'py>) -> Option<&'py PyArray2<f64>> {
                 self.0
                     .records()
                     .1
-                    .mapv(|r| f64::try_from(r).unwrap())
-                    .view()
-                    .to_pyarray(py)
+                    .map(|r| r.mapv(|r| f64::try_from(r).unwrap()).view().to_pyarray(py))
             }
         }
     };
@@ -768,7 +751,7 @@ macro_rules! impl_parameter_from_segments {
                 chemical_records: Vec<PyChemicalRecord>,
                 segment_records: Vec<PySegmentRecord>,
                 binary_segment_records: Option<Vec<PyBinarySegmentRecord>>,
-            ) -> Result<Self, ParameterError> {
+            ) -> PyResult<Self> {
                 Ok(Self(Arc::new(<$parameter>::from_segments(
                     chemical_records.into_iter().map(|cr| cr.0).collect(),
                     segment_records.into_iter().map(|sr| sr.0).collect(),
@@ -801,7 +784,7 @@ macro_rules! impl_parameter_from_segments {
                 segments_path: String,
                 binary_path: Option<String>,
                 search_option: IdentifierOption,
-            ) -> Result<Self, ParameterError> {
+            ) -> PyResult<Self> {
                 Ok(Self(Arc::new(<$parameter>::from_json_segments(
                     &substances,
                     pure_path,
@@ -809,6 +792,76 @@ macro_rules! impl_parameter_from_segments {
                     binary_path,
                     search_option,
                 )?)))
+            }
+
+            /// Creates parameters from SMILES and segment records.
+            ///
+            /// Requires an installation of rdkit.
+            ///
+            /// Parameters
+            /// ----------
+            /// identifier : [str | Identifier]
+            ///     A list of SMILES codes or [Identifier] objects.
+            /// smarts_records : [SmartsRecord]
+            ///     A list of records containing the SMARTS codes used
+            ///     to fragment the molecule.
+            /// segment_records : [SegmentRecord]
+            ///     A list of records containing the parameters of
+            ///     all individual segments.
+            /// binary_segment_records : [BinarySegmentRecord], optional
+            ///     A list of binary segment-segment parameters.
+            #[staticmethod]
+            #[pyo3(text_signature = "(identifier, smarts_records, segment_records, binary_segment_records=None)")]
+            fn from_smiles(
+                py: Python<'_>,
+                identifier: Vec<&PyAny>,
+                smarts_records: Vec<PySmartsRecord>,
+                segment_records: Vec<PySegmentRecord>,
+                binary_segment_records: Option<Vec<PyBinarySegmentRecord>>,
+            ) -> PyResult<Self> {
+                let chemical_records: Vec<_> = identifier
+                    .into_iter()
+                    .map(|i| PyChemicalRecord::from_smiles(py, i, smarts_records.clone()))
+                    .collect::<PyResult<_>>()?;
+                Self::from_segments(chemical_records, segment_records, binary_segment_records)
+            }
+
+            /// Creates parameters from SMILES using segments from json file.
+            ///
+            /// Requires an installation of rdkit.
+            ///
+            /// Parameters
+            /// ----------
+            /// identifier : [str | Identifier]
+            ///     A list of SMILES codes or [Identifier] objects.
+            /// smarts_path : str
+            ///     Path to file containing SMARTS records.
+            /// segments_path : str
+            ///     Path to file containing segment parameters.
+            /// binary_path : str, optional
+            ///     Path to file containing binary segment-segment parameters.
+            #[staticmethod]
+            #[pyo3(
+                signature = (identifier, smarts_path, segments_path, binary_path=None),
+                text_signature = "(identifier, smarts_path, segments_path, binary_path=None)"
+            )]
+            fn from_json_smiles(
+                py: Python<'_>,
+                identifier: Vec<&PyAny>,
+                smarts_path: String,
+                segments_path: String,
+                binary_path: Option<String>,
+            ) -> PyResult<Self> {
+                let smarts_records = PySmartsRecord::from_json(&smarts_path)?;
+                let segment_records = PySegmentRecord::from_json(&segments_path)?;
+                let binary_segment_records = binary_path.map(|p| PyBinarySegmentRecord::from_json(&p)).transpose()?;
+                Self::from_smiles(
+                    py,
+                    identifier,
+                    smarts_records,
+                    segment_records,
+                    binary_segment_records,
+                )
             }
         }
     };
@@ -832,3 +885,6 @@ macro_rules! impl_json_handling {
         }
     };
 }
+
+mod fragmentation;
+pub use fragmentation::PySmartsRecord;

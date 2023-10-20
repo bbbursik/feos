@@ -1,12 +1,12 @@
-use super::{PhaseEquilibrium, SolverOptions, Verbosity};
-use crate::equation_of_state::EquationOfState;
+use super::PhaseEquilibrium;
+use crate::equation_of_state::Residual;
 use crate::errors::{EosError, EosResult};
+use crate::si::Moles;
 use crate::state::{Contributions, DensityInitialization, State};
-use crate::EosUnit;
+use crate::{SolverOptions, Verbosity};
 use ndarray::*;
 use num_dual::linalg::smallest_ev;
 use num_dual::linalg::LU;
-use quantity::si::SIUnit;
 use std::f64::EPSILON;
 use std::ops::MulAssign;
 
@@ -18,7 +18,7 @@ const MINIMIZE_KMAX: usize = 100;
 const ZERO_TPD: f64 = -1E-08;
 
 /// # Stability analysis
-impl<E: EquationOfState> State<E> {
+impl<E: Residual> State<E> {
     /// Determine if the state is stable, i.e. if a phase split should
     /// occur or not.
     pub fn is_stable(&self, options: SolverOptions) -> EosResult<bool> {
@@ -87,7 +87,7 @@ impl<E: EquationOfState> State<E> {
             &self.eos,
             self.temperature,
             self.pressure(Contributions::Total),
-            &(x_trial * SIUnit::reference_moles()),
+            &Moles::from_reduced(x_trial),
             phase,
         )
     }
@@ -118,7 +118,7 @@ impl<E: EquationOfState> State<E> {
                     &trial.eos,
                     trial.temperature,
                     trial.pressure(Contributions::Total),
-                    &(SIUnit::reference_moles() * &y),
+                    &Moles::from_reduced(y),
                     DensityInitialization::InitialDensity(trial.density),
                 )?;
                 if (i > 4 && error > scaled_tol) || (tpd > tpd_old + 1E-05 && i > 2) {
@@ -161,9 +161,9 @@ impl<E: EquationOfState> State<E> {
         let tpd_old = *tpd;
 
         // calculate residual and ideal hesse matrix
-        let mut hesse = (self.dln_phi_dnj() * SIUnit::reference_moles()).into_value()?;
+        let mut hesse = (self.dln_phi_dnj() * Moles::from_reduced(1.0)).into_value();
         let lnphi = self.ln_phi();
-        let y = self.moles.to_reduced(SIUnit::reference_moles())?;
+        let y = self.moles.to_reduced();
         let ln_y = Zip::from(&y).map_collect(|&y| if y > EPSILON { y.ln() } else { 0.0 });
         let sq_y = y.mapv(f64::sqrt);
         let gradient = (&ln_y + &lnphi - di) * &sq_y;
@@ -225,7 +225,7 @@ impl<E: EquationOfState> State<E> {
                 &self.eos,
                 self.temperature,
                 self.pressure(Contributions::Total),
-                &(SIUnit::reference_moles() * y),
+                &Moles::from_reduced(y),
                 DensityInitialization::InitialDensity(self.density),
             )?;
         }

@@ -1,14 +1,13 @@
-use crate::association::{AssociationParameters, AssociationRecord};
+use crate::association::{AssociationParameters, AssociationRecord, BinaryAssociationRecord};
 use crate::hard_sphere::{HardSphereProperties, MonomerShape};
 use conv::ValueInto;
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{
     FromSegments, FromSegmentsBinary, Parameter, ParameterError, PureRecord,
 };
+use feos_core::si::{JOULE, KB, KELVIN};
 use ndarray::{Array, Array1, Array2};
 use num_dual::DualNum;
 use num_traits::Zero;
-use quantity::si::{JOULE, KB, KELVIN};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::Write;
@@ -25,7 +24,7 @@ pub struct PcSaftRecord {
     /// Dipole moment in units of Debye
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mu: Option<f64>,
-    /// Quadrupole moment in units of Debye
+    /// Quadrupole moment in units of Debye * Angstrom
     #[serde(skip_serializing_if = "Option::is_none")]
     pub q: Option<f64>,
     /// Association parameters
@@ -70,14 +69,23 @@ impl FromSegments<f64> for PcSaftRecord {
                     [
                         record.kappa_ab * n,
                         record.epsilon_k_ab * n,
-                        record.na.unwrap_or(1.0) * n,
-                        record.nb.unwrap_or(1.0) * n,
+                        record.na * n,
+                        record.nb * n,
+                        record.nc * n,
                     ]
                 })
             })
-            .reduce(|a, b| [a[0] + b[0], a[1] + b[1], a[2] + b[2], a[3] + b[3]])
-            .map(|[kappa_ab, epsilon_k_ab, na, nb]| {
-                AssociationRecord::new(kappa_ab, epsilon_k_ab, Some(na), Some(nb))
+            .reduce(|a, b| {
+                [
+                    a[0] + b[0],
+                    a[1] + b[1],
+                    a[2] + b[2],
+                    a[3] + b[3],
+                    a[4] + b[4],
+                ]
+            })
+            .map(|[kappa_ab, epsilon_k_ab, na, nb, nc]| {
+                AssociationRecord::new(kappa_ab, epsilon_k_ab, na, nb, nc)
             });
 
         // entropy scaling
@@ -151,13 +159,30 @@ impl FromSegments<f64> for PcSaftRecord {
 impl FromSegments<usize> for PcSaftRecord {
     fn from_segments(segments: &[(Self, usize)]) -> Result<Self, ParameterError> {
         // We do not allow more than a single segment for q, mu, kappa_ab, epsilon_k_ab
+        let polar_segments: usize = segments
+            .iter()
+            .filter_map(|(s, n)| {
+                if s.q.is_some()
+                    || s.mu.is_some()
+                    || s.association_record
+                        .is_some_and(|r| r.na + r.nb + r.nc > 0.0)
+                {
+                    Some(n)
+                } else {
+                    None
+                }
+            })
+            .sum();
         let quadpole_segments: usize = segments.iter().filter_map(|(s, n)| s.q.map(|_| n)).sum();
         let dipole_segments: usize = segments.iter().filter_map(|(s, n)| s.mu.map(|_| n)).sum();
         let assoc_segments: usize = segments
             .iter()
-            .filter_map(|(s, n)| s.association_record.map(|_| n))
+            .filter_map(|(s, n)| {
+                s.association_record
+                    .map(|r| (r.na * r.nb + r.nc) as usize * n)
+            })
             .sum();
-        if quadpole_segments + dipole_segments + assoc_segments > 1 {
+        if polar_segments > 1 {
             return Err(ParameterError::IncompatibleParameters(format!(
                 "Too many polar/associating segments (dipolar: {dipole_segments}, quadrupolar {quadpole_segments}, associating: {assoc_segments})."
             )));
@@ -209,18 +234,26 @@ impl PcSaftRecord {
         epsilon_k_ab: Option<f64>,
         na: Option<f64>,
         nb: Option<f64>,
+        nc: Option<f64>,
         viscosity: Option<[f64; 4]>,
         diffusion: Option<[f64; 5]>,
         thermal_conductivity: Option<[f64; 4]>,
     ) -> PcSaftRecord {
-        let association_record = match (kappa_ab, epsilon_k_ab) {
-            (Some(kappa_ab), Some(epsilon_k_ab)) => {
-                Some(AssociationRecord::new(kappa_ab, epsilon_k_ab, na, nb))
-            }
-            (None, None) => None,
-            _ => {
-                panic!("To model association, both kappa_ab and epsilon_k_ab need to be specified.")
-            }
+        let association_record = if kappa_ab.is_none()
+            && epsilon_k_ab.is_none()
+            && na.is_none()
+            && nb.is_none()
+            && nc.is_none()
+        {
+            None
+        } else {
+            Some(AssociationRecord::new(
+                kappa_ab.unwrap_or_default(),
+                epsilon_k_ab.unwrap_or_default(),
+                na.unwrap_or_default(),
+                nb.unwrap_or_default(),
+                nc.unwrap_or_default(),
+            ))
         };
         PcSaftRecord {
             m,
@@ -236,14 +269,24 @@ impl PcSaftRecord {
     }
 }
 
+/// PC-SAFT binary interaction parameters.
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct PcSaftBinaryRecord {
-    k_ij: f64,
+    /// Binary dispersion interaction parameter
+    #[serde(skip_serializing_if = "f64::is_zero")]
+    #[serde(default)]
+    pub k_ij: f64,
+    /// Binary association parameters
+    #[serde(flatten)]
+    association: Option<BinaryAssociationRecord>,
 }
 
 impl From<f64> for PcSaftBinaryRecord {
     fn from(k_ij: f64) -> Self {
-        Self { k_ij }
+        Self {
+            k_ij,
+            association: None,
+        }
     }
 }
 
@@ -253,19 +296,46 @@ impl From<PcSaftBinaryRecord> for f64 {
     }
 }
 
+impl PcSaftBinaryRecord {
+    pub fn new(k_ij: Option<f64>, kappa_ab: Option<f64>, epsilon_k_ab: Option<f64>) -> Self {
+        let k_ij = k_ij.unwrap_or_default();
+        let association = if kappa_ab.is_none() && epsilon_k_ab.is_none() {
+            None
+        } else {
+            Some(BinaryAssociationRecord::new(kappa_ab, epsilon_k_ab, None))
+        };
+        Self { k_ij, association }
+    }
+}
+
 impl<T: Copy + ValueInto<f64>> FromSegmentsBinary<T> for PcSaftBinaryRecord {
     fn from_segments_binary(segments: &[(Self, T, T)]) -> Result<Self, ParameterError> {
         let (k_ij, n) = segments.iter().fold((0.0, 0.0), |(k_ij, n), (br, n1, n2)| {
             let nab = (*n1).value_into().unwrap() * (*n2).value_into().unwrap();
             (k_ij + br.k_ij * nab, n + nab)
         });
-        Ok(Self { k_ij: k_ij / n })
+        Ok(Self {
+            k_ij: k_ij / n,
+            association: None,
+        })
     }
 }
 
 impl std::fmt::Display for PcSaftBinaryRecord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PcSaftBinaryRecord(k_ij={})", self.k_ij)
+        let mut tokens = vec![];
+        if !self.k_ij.is_zero() {
+            tokens.push(format!("k_ij={}", self.k_ij));
+        }
+        if let Some(association) = self.association {
+            if let Some(kappa_ab) = association.kappa_ab {
+                tokens.push(format!("kappa_ab={}", kappa_ab));
+            }
+            if let Some(epsilon_k_ab) = association.epsilon_k_ab {
+                tokens.push(format!("epsilon_k_ab={}", epsilon_k_ab));
+            }
+        }
+        write!(f, "PcSaftBinaryRecord({})", tokens.join(", "))
     }
 }
 
@@ -280,7 +350,6 @@ pub struct PcSaftParameters {
     pub mu2: Array1<f64>,
     pub q2: Array1<f64>,
     pub association: AssociationParameters,
-    pub k_ij: Array2<f64>,
     pub sigma_ij: Array2<f64>,
     pub epsilon_k_ij: Array2<f64>,
     pub e_k_ij: Array2<f64>,
@@ -291,19 +360,17 @@ pub struct PcSaftParameters {
     pub viscosity: Option<Array2<f64>>,
     pub diffusion: Option<Array2<f64>>,
     pub thermal_conductivity: Option<Array2<f64>>,
-    pub pure_records: Vec<PureRecord<PcSaftRecord, JobackRecord>>,
-    pub binary_records: Array2<PcSaftBinaryRecord>,
-    pub joback_records: Option<Vec<JobackRecord>>,
+    pub pure_records: Vec<PureRecord<PcSaftRecord>>,
+    pub binary_records: Option<Array2<PcSaftBinaryRecord>>,
 }
 
 impl Parameter for PcSaftParameters {
     type Pure = PcSaftRecord;
-    type IdealGas = JobackRecord;
     type Binary = PcSaftBinaryRecord;
 
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<PcSaftBinaryRecord>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<Self::Binary>>,
     ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
@@ -328,7 +395,7 @@ impl Parameter for PcSaftParameters {
             epsilon_k[i] = r.epsilon_k;
             mu[i] = r.mu.unwrap_or(0.0);
             q[i] = r.q.unwrap_or(0.0);
-            association_records.push(r.association_record);
+            association_records.push(r.association_record.into_iter().collect());
             viscosity.push(r.viscosity);
             diffusion.push(r.diffusion);
             thermal_conductivity.push(r.thermal_conductivity);
@@ -337,10 +404,10 @@ impl Parameter for PcSaftParameters {
 
         let mu2 = &mu * &mu / (&m * &sigma * &sigma * &sigma * &epsilon_k)
             * 1e-19
-            * (JOULE / KELVIN / KB).into_value().unwrap();
+            * (JOULE / KELVIN / KB).into_value();
         let q2 = &q * &q / (&m * &sigma.mapv(|s| s.powi(5)) * &epsilon_k)
             * 1e-19
-            * (JOULE / KELVIN / KB).into_value().unwrap();
+            * (JOULE / KELVIN / KB).into_value();
         let dipole_comp: Array1<usize> = mu2
             .iter()
             .enumerate()
@@ -354,19 +421,29 @@ impl Parameter for PcSaftParameters {
             .collect();
         let nquadpole = quadpole_comp.len();
 
-        let association = AssociationParameters::new(&association_records, &sigma, None);
+        let binary_association: Vec<_> = binary_records
+            .iter()
+            .flat_map(|r| {
+                r.indexed_iter()
+                    .filter_map(|(i, record)| record.association.map(|r| (i, r)))
+            })
+            .collect();
+        let association =
+            AssociationParameters::new(&association_records, &sigma, &binary_association, None);
 
-        let k_ij = binary_records.map(|br| br.k_ij);
-        let mut epsilon_k_ij = Array::zeros((n, n));
+        let k_ij = binary_records.as_ref().map(|br| br.map(|br| br.k_ij));
         let mut sigma_ij = Array::zeros((n, n));
         let mut e_k_ij = Array::zeros((n, n));
         for i in 0..n {
             for j in 0..n {
                 e_k_ij[[i, j]] = (epsilon_k[i] * epsilon_k[j]).sqrt();
-                epsilon_k_ij[[i, j]] = (1.0 - k_ij[[i, j]]) * e_k_ij[[i, j]];
                 sigma_ij[[i, j]] = 0.5 * (sigma[i] + sigma[j]);
             }
         }
+        let mut epsilon_k_ij = e_k_ij.clone();
+        if let Some(k_ij) = k_ij.as_ref() {
+            epsilon_k_ij *= &(1.0 - k_ij)
+        };
 
         let viscosity_coefficients = if viscosity.iter().any(|v| v.is_none()) {
             None
@@ -399,11 +476,6 @@ impl Parameter for PcSaftParameters {
             Some(v)
         };
 
-        let joback_records = pure_records
-            .iter()
-            .map(|r| r.ideal_gas_record.clone())
-            .collect();
-
         Ok(Self {
             molarweight,
             m,
@@ -414,7 +486,6 @@ impl Parameter for PcSaftParameters {
             mu2,
             q2,
             association,
-            k_ij,
             sigma_ij,
             epsilon_k_ij,
             e_k_ij,
@@ -427,17 +498,16 @@ impl Parameter for PcSaftParameters {
             thermal_conductivity: thermal_conductivity_coefficients,
             pure_records,
             binary_records,
-            joback_records,
         })
     }
 
     fn records(
         &self,
     ) -> (
-        &[PureRecord<PcSaftRecord, JobackRecord>],
-        &Array2<PcSaftBinaryRecord>,
+        &[PureRecord<PcSaftRecord>],
+        Option<&Array2<PcSaftBinaryRecord>>,
     ) {
-        (&self.pure_records, &self.binary_records)
+        (&self.pure_records, self.binary_records.as_ref())
     }
 }
 
@@ -446,7 +516,7 @@ impl HardSphereProperties for PcSaftParameters {
         MonomerShape::NonSpherical(self.m.mapv(N::from))
     }
 
-    fn hs_diameter<D: DualNum<f64>>(&self, temperature: D) -> Array1<D> {
+    fn hs_diameter<D: DualNum<f64> + Copy>(&self, temperature: D) -> Array1<D> {
         let ti = temperature.recip() * -3.0;
         Array::from_shape_fn(self.sigma.len(), |i| {
             -((ti * self.epsilon_k[i]).exp() * 0.12 - 1.0) * self.sigma[i]
@@ -460,7 +530,7 @@ impl PcSaftParameters {
         let o = &mut output;
         write!(
             o,
-            "|component|molarweight|$m$|$\\sigma$|$\\varepsilon$|$\\mu$|$Q$|$\\kappa_{{AB}}$|$\\varepsilon_{{AB}}$|$N_A$|$N_B$|\n|-|-|-|-|-|-|-|-|-|-|-|"
+            "|component|molarweight|$m$|$\\sigma$|$\\varepsilon$|$\\mu$|$Q$|$\\kappa_{{AB}}$|$\\varepsilon_{{AB}}$|$N_A$|$N_B$|$N_C$|\n|-|-|-|-|-|-|-|-|-|-|-|-|"
         )
         .unwrap();
         for (i, record) in self.pure_records.iter().enumerate() {
@@ -469,10 +539,10 @@ impl PcSaftParameters {
             let association = record
                 .model_record
                 .association_record
-                .unwrap_or_else(|| AssociationRecord::new(0.0, 0.0, None, None));
+                .unwrap_or_else(|| AssociationRecord::new(0.0, 0.0, 0.0, 0.0, 0.0));
             write!(
                 o,
-                "\n|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
+                "\n|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|{}|",
                 component,
                 record.molarweight,
                 record.model_record.m,
@@ -482,40 +552,14 @@ impl PcSaftParameters {
                 record.model_record.q.unwrap_or(0.0),
                 association.kappa_ab,
                 association.epsilon_k_ab,
-                association.na.unwrap_or(1.0),
-                association.nb.unwrap_or(1.0)
+                association.na,
+                association.nb,
+                association.nc
             )
             .unwrap();
         }
 
         output
-    }
-}
-
-impl std::fmt::Display for PcSaftParameters {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "PcSaftParameters(")?;
-        write!(f, "\n\tmolarweight={}", self.molarweight)?;
-        write!(f, "\n\tm={}", self.m)?;
-        write!(f, "\n\tsigma={}", self.sigma)?;
-        write!(f, "\n\tepsilon_k={}", self.epsilon_k)?;
-        if !self.dipole_comp.is_empty() {
-            write!(f, "\n\tmu={}", self.mu)?;
-        }
-        if !self.quadpole_comp.is_empty() {
-            write!(f, "\n\tq={}", self.q)?;
-        }
-        if !self.association.assoc_comp.is_empty() {
-            write!(f, "\n\tassociating={}", self.association.assoc_comp)?;
-            write!(f, "\n\tkappa_ab={}", self.association.kappa_ab)?;
-            write!(f, "\n\tepsilon_k_ab={}", self.association.epsilon_k_ab)?;
-            write!(f, "\n\tna={}", self.association.na)?;
-            write!(f, "\n\tnb={}", self.association.nb)?;
-        }
-        if !self.k_ij.iter().all(|k| k.is_zero()) {
-            write!(f, "\n\tk_ij=\n{}", self.k_ij)?;
-        }
-        write!(f, "\n)")
     }
 }
 
@@ -547,7 +591,7 @@ pub mod utils {
                 },
                 "molarweight": 44.0962
             }"#;
-        let propane_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let propane_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(propane_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_pure(propane_record).unwrap())
     }
@@ -576,7 +620,7 @@ pub mod utils {
                 ]
             }
         }"#;
-        let methane_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let methane_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(methane_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_pure(methane_record).unwrap())
     }
@@ -600,7 +644,7 @@ pub mod utils {
                 "q": 4.4
             }
         }"#;
-        let co2_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let co2_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(co2_json).expect("Unable to parse json.");
         PcSaftParameters::new_pure(co2_record).unwrap()
     }
@@ -623,7 +667,7 @@ pub mod utils {
                 },
                 "molarweight": 58.123
             }"#;
-        let butane_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let butane_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(butane_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_pure(butane_record).unwrap())
     }
@@ -647,7 +691,7 @@ pub mod utils {
                 },
                 "molarweight": 46.0688
             }"#;
-        let dme_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let dme_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(dme_json).expect("Unable to parse json.");
         PcSaftParameters::new_pure(dme_record).unwrap()
     }
@@ -668,11 +712,13 @@ pub mod utils {
                     "sigma": 3.000683,
                     "epsilon_k": 366.5121,
                     "kappa_ab": 0.034867983,
-                    "epsilon_k_ab": 2500.6706
+                    "epsilon_k_ab": 2500.6706,
+                    "na": 1.0,
+                    "nb": 1.0
                 },
                 "molarweight": 18.0152
             }"#;
-        let water_record: PureRecord<PcSaftRecord, JobackRecord> =
+        let water_record: PureRecord<PcSaftRecord> =
             serde_json::from_str(water_json).expect("Unable to parse json.");
         PcSaftParameters::new_pure(water_record).unwrap()
     }
@@ -714,7 +760,7 @@ pub mod utils {
                 }
             }
         ]"#;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         PcSaftParameters::new_binary(binary_record, None).unwrap()
     }
@@ -759,7 +805,7 @@ pub mod utils {
                 "molarweight": 58.123
             }
         ]"#;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_binary(binary_record, None).unwrap())
     }
@@ -817,7 +863,7 @@ pub mod utils {
             }
         ]"#;
         let kij = 0.0251;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
     }
@@ -905,7 +951,7 @@ pub mod utils {
         //       "k_ij": 0.1661
         //     }
         //   ]"#;
-        let binary_record: Vec<PureRecord<PcSaftRecord, JobackRecord>> =
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
             serde_json::from_str(binary_json).expect("Unable to parse json.");
         let kij = 0.1661;
         Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
@@ -929,7 +975,14 @@ pub mod utils {
         let binary_segment_records = kij
             .iter()
             .map(|&(id1, id2, k_ij)| {
-                BinaryRecord::new(id1.into(), id2.into(), PcSaftBinaryRecord { k_ij })
+                BinaryRecord::new(
+                    id1.into(),
+                    id2.into(),
+                    PcSaftBinaryRecord {
+                        k_ij,
+                        association: None,
+                    },
+                )
             })
             .collect();
         let params = PcSaftParameters::from_segments(
@@ -937,7 +990,7 @@ pub mod utils {
             segment_records,
             Some(binary_segment_records),
         )?;
-        let k_ij = &params.binary_records;
+        let k_ij = params.binary_records.as_ref().unwrap();
         assert_eq!(k_ij[[0, 0]].k_ij, 0.0);
         assert_eq!(k_ij[[0, 1]].k_ij, -0.5 / 9.);
         assert_eq!(k_ij[[1, 0]].k_ij, -0.5 / 9.);

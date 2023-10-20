@@ -1,11 +1,10 @@
-use super::{PhaseEquilibrium, SolverOptions, Verbosity};
-use crate::equation_of_state::EquationOfState;
+use super::PhaseEquilibrium;
+use crate::equation_of_state::Residual;
 use crate::errors::{EosError, EosResult};
+use crate::si::{Moles, Pressure, Temperature, RGAS};
 use crate::state::{Contributions, DensityInitialization, State, TPSpec};
-use crate::EosUnit;
+use crate::{SolverOptions, Verbosity};
 use ndarray::{arr1, Array1};
-use quantity::si::{SINumber, SIUnit};
-use std::convert::TryFrom;
 use std::sync::Arc;
 
 const SCALE_T_NEW: f64 = 0.7;
@@ -13,15 +12,18 @@ const MAX_ITER_PURE: usize = 50;
 const TOL_PURE: f64 = 1e-12;
 
 /// # Pure component phase equilibria
-impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
+impl<E: Residual> PhaseEquilibrium<E, 2> {
     /// Calculate a phase equilibrium for a pure component.
-    pub fn pure(
+    pub fn pure<TP>(
         eos: &Arc<E>,
-        temperature_or_pressure: SINumber,
+        temperature_or_pressure: TP,
         initial_state: Option<&PhaseEquilibrium<E, 2>>,
         options: SolverOptions,
-    ) -> EosResult<Self> {
-        match TPSpec::try_from(temperature_or_pressure)? {
+    ) -> EosResult<Self>
+    where
+        TPSpec: From<TP>,
+    {
+        match TPSpec::from(temperature_or_pressure) {
             TPSpec::Temperature(t) => Self::pure_t(eos, t, initial_state, options),
             TPSpec::Pressure(p) => Self::pure_p(eos, p, initial_state, options),
         }
@@ -31,7 +33,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
     /// and given temperature.
     fn pure_t(
         eos: &Arc<E>,
-        temperature: SINumber,
+        temperature: Temperature,
         initial_state: Option<&PhaseEquilibrium<E, 2>>,
         options: SolverOptions,
     ) -> EosResult<Self> {
@@ -83,30 +85,31 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
             let (p_l, p_rho_l) = liquid.p_dpdrho();
             let (p_v, p_rho_v) = vapor.p_dpdrho();
             // calculate the molar Helmholtz energies (already cached)
-            let a_l = liquid.molar_helmholtz_energy(Contributions::Total);
-            let a_v = vapor.molar_helmholtz_energy(Contributions::Total);
+            let a_l_res = liquid.residual_molar_helmholtz_energy();
+            let a_v_res = vapor.residual_molar_helmholtz_energy();
 
             // Estimate the new pressure
+            let kt = RGAS * vapor.temperature;
             let delta_v = 1.0 / vapor.density - 1.0 / liquid.density;
-            let delta_a = a_v - a_l;
+            let delta_a =
+                a_v_res - a_l_res + kt * (vapor.density / liquid.density).into_value().ln();
             let mut p_new = -delta_a / delta_v;
 
             // If the pressure becomes negative, assume the gas phase is ideal. The
             // resulting pressure is always positive.
             if p_new.is_sign_negative() {
-                let mu_v = vapor.chemical_potential(Contributions::Total).get(0);
                 p_new = p_v
-                    * (a_l - mu_v)
-                        .to_reduced(vapor.temperature * SIUnit::gas_constant())?
+                    * ((-delta_a - p_v * vapor.volume / vapor.total_moles) / kt)
+                        .into_value()
                         .exp();
             }
 
             // Improve the estimate by exploiting the almost ideal behavior of the gas phase
-            let kt = SIUnit::gas_constant() * vapor.temperature;
+            let kt = RGAS * vapor.temperature;
             let mut newton_iter = 0;
             let newton_tol = p_old * delta_v * tol;
             for _ in 0..20 {
-                let p_frac = p_new.to_reduced(p_old)?;
+                let p_frac = (p_new / p_old).into_value();
                 let f = p_new * delta_v + delta_a + (p_frac.ln() + 1.0 - p_frac) * kt;
                 let df_dp = delta_v + (1.0 / p_new - 1.0 / p_old) * kt;
                 p_new -= f / df_dp;
@@ -159,7 +162,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
     /// and given pressure.
     fn pure_p(
         eos: &Arc<E>,
-        pressure: SINumber,
+        pressure: Pressure,
         initial_state: Option<&Self>,
         options: SolverOptions,
     ) -> EosResult<Self> {
@@ -193,20 +196,23 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
             let p_t_l = vle.liquid().dp_dt(Contributions::Total);
             let p_t_v = vle.vapor().dp_dt(Contributions::Total);
 
-            // calculate the molar entropies (already cached)
-            let s_l = vle.liquid().molar_entropy(Contributions::Total);
-            let s_v = vle.vapor().molar_entropy(Contributions::Total);
+            // calculate the residual molar entropies (already cached)
+            let s_l_res = vle.liquid().residual_molar_entropy();
+            let s_v_res = vle.vapor().residual_molar_entropy();
 
-            // calculate the molar Helmholtz energies (already cached)
-            let a_l = vle.liquid().molar_helmholtz_energy(Contributions::Total);
-            let a_v = vle.vapor().molar_helmholtz_energy(Contributions::Total);
+            // calculate the residual molar Helmholtz energies (already cached)
+            let a_l_res = vle.liquid().residual_molar_helmholtz_energy();
+            let a_v_res = vle.vapor().residual_molar_helmholtz_energy();
 
             // calculate the molar volumes
             let v_l = 1.0 / vle.liquid().density;
             let v_v = 1.0 / vle.vapor().density;
 
             // estimate the temperature steps
-            let delta_t = (pressure * (v_v - v_l) + (a_v - a_l)) / (s_v - s_l);
+            let kt = RGAS * vle.vapor().temperature;
+            let ln_rho = (v_l / v_v).into_value().ln();
+            let delta_t = (pressure * (v_v - v_l) + (a_v_res - a_l_res + kt * ln_rho))
+                / (s_v_res - s_l_res - RGAS * ln_rho);
             let t_new = vle.vapor().temperature + delta_t;
 
             // calculate Newton steps for the densities and update state.
@@ -215,7 +221,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
 
             if rho_l.is_sign_negative()
                 || rho_v.is_sign_negative()
-                || delta_t.abs() > SIUnit::reference_temperature()
+                || delta_t.abs() > Temperature::from_reduced(1.0)
             {
                 // if densities are negative or the temperature step is large use density iteration instead
                 vle = vle
@@ -252,40 +258,34 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
         Err(EosError::NotConverged("pure_p".to_owned()))
     }
 
-    fn init_pure_state(initial_state: &Self, temperature: SINumber) -> EosResult<Self> {
+    fn init_pure_state(initial_state: &Self, temperature: Temperature) -> EosResult<Self> {
         let vapor = initial_state.vapor().update_temperature(temperature)?;
         let liquid = initial_state.liquid().update_temperature(temperature)?;
         Ok(Self([vapor, liquid]))
     }
 
-    fn init_pure_ideal_gas(eos: &Arc<E>, temperature: SINumber) -> EosResult<Self> {
-        let m = arr1(&[1.0]) * SIUnit::reference_moles();
+    fn init_pure_ideal_gas(eos: &Arc<E>, temperature: Temperature) -> EosResult<Self> {
+        let m = Moles::from_reduced(arr1(&[1.0]));
         let p = Self::starting_pressure_ideal_gas_bubble(eos, temperature, &arr1(&[1.0]))?.0;
         PhaseEquilibrium::new_npt(eos, temperature, p, &m, &m)?.check_trivial_solution()
     }
 
-    fn init_pure_spinodal(eos: &Arc<E>, temperature: SINumber) -> EosResult<Self>
-    where
-        SINumber: std::fmt::Display,
-    {
+    fn init_pure_spinodal(eos: &Arc<E>, temperature: Temperature) -> EosResult<Self> {
         let p = Self::starting_pressure_spinodal(eos, temperature, &arr1(&[1.0]))?;
-        let m = arr1(&[1.0]) * SIUnit::reference_moles();
+        let m = Moles::from_reduced(arr1(&[1.0]));
         PhaseEquilibrium::new_npt(eos, temperature, p, &m, &m)
     }
 
     /// Initialize a new VLE for a pure substance for a given pressure.
-    fn init_pure_p(eos: &Arc<E>, pressure: SINumber) -> EosResult<Self>
-    where
-        SINumber: std::fmt::Display,
-    {
+    fn init_pure_p(eos: &Arc<E>, pressure: Pressure) -> EosResult<Self> {
         let trial_temperatures = [
-            300.0 * SIUnit::reference_temperature(),
-            500.0 * SIUnit::reference_temperature(),
-            200.0 * SIUnit::reference_temperature(),
+            Temperature::from_reduced(300.0),
+            Temperature::from_reduced(500.0),
+            Temperature::from_reduced(200.0),
         ];
-        let m = arr1(&[1.0]) * SIUnit::reference_moles();
+        let m = Moles::from_reduced(arr1(&[1.0]));
         let mut vle = None;
-        let mut t0 = SIUnit::reference_temperature();
+        let mut t0 = Temperature::from_reduced(1.0);
         for t in trial_temperatures.iter() {
             t0 = *t;
             let _vle = PhaseEquilibrium::new_npt(eos, *t, pressure, &m, &m)?;
@@ -302,7 +302,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
         if let Some(mut e) = vle {
             if e.vapor().density < cp.density {
                 for _ in 0..8 {
-                    t0 = t0 * SCALE_T_NEW;
+                    t0 *= SCALE_T_NEW;
                     e.0[1] = State::new_npt(eos, t0, pressure, &m, DensityInitialization::Liquid)?;
                     if e.liquid().density > cp.density {
                         break;
@@ -310,7 +310,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
                 }
             } else {
                 for _ in 0..8 {
-                    t0 = t0 / SCALE_T_NEW;
+                    t0 /= SCALE_T_NEW;
                     e.0[0] = State::new_npt(eos, t0, pressure, &m, DensityInitialization::Vapor)?;
                     if e.vapor().density < cp.density {
                         break;
@@ -319,10 +319,13 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
             }
 
             for _ in 0..20 {
-                t0 = (e.vapor().enthalpy(Contributions::Total)
-                    - e.liquid().enthalpy(Contributions::Total))
-                    / (e.vapor().entropy(Contributions::Total)
-                        - e.liquid().entropy(Contributions::Total));
+                let h = |s: &State<_>| s.residual_enthalpy() + s.total_moles * RGAS * s.temperature;
+                t0 = (h(e.vapor()) - h(e.liquid()))
+                    / (e.vapor().residual_entropy()
+                        - e.liquid().residual_entropy()
+                        - RGAS
+                            * e.vapor().total_moles
+                            * ((e.vapor().density / e.liquid().density).into_value().ln()));
                 let trial_state =
                     State::new_npt(eos, t0, pressure, &m, DensityInitialization::Vapor)?;
                 if trial_state.density < cp.density {
@@ -346,10 +349,10 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
     }
 }
 
-impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
+impl<E: Residual> PhaseEquilibrium<E, 2> {
     /// Calculate the pure component vapor pressures of all
     /// components in the system for the given temperature.
-    pub fn vapor_pressure(eos: &Arc<E>, temperature: SINumber) -> Vec<Option<SINumber>> {
+    pub fn vapor_pressure(eos: &Arc<E>, temperature: Temperature) -> Vec<Option<Pressure>> {
         (0..eos.components())
             .map(|i| {
                 let pure_eos = Arc::new(eos.subset(&[i]));
@@ -362,7 +365,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
 
     /// Calculate the pure component boiling temperatures of all
     /// components in the system for the given pressure.
-    pub fn boiling_temperature(eos: &Arc<E>, pressure: SINumber) -> Vec<Option<SINumber>> {
+    pub fn boiling_temperature(eos: &Arc<E>, pressure: Pressure) -> Vec<Option<Temperature>> {
         (0..eos.components())
             .map(|i| {
                 let pure_eos = Arc::new(eos.subset(&[i]));
@@ -375,10 +378,13 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
 
     /// Calculate the pure component phase equilibria of all
     /// components in the system.
-    pub fn vle_pure_comps(
+    pub fn vle_pure_comps<TP: Copy>(
         eos: &Arc<E>,
-        temperature_or_pressure: SINumber,
-    ) -> Vec<Option<PhaseEquilibrium<E, 2>>> {
+        temperature_or_pressure: TP,
+    ) -> Vec<Option<PhaseEquilibrium<E, 2>>>
+    where
+        TPSpec: From<TP>,
+    {
         (0..eos.components())
             .map(|i| {
                 let pure_eos = Arc::new(eos.subset(&[i]));
@@ -390,15 +396,10 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
                 )
                 .ok()
                 .map(|vle_pure| {
-                    let mut moles_vapor =
-                        Array1::zeros(eos.components()) * SIUnit::reference_moles();
+                    let mut moles_vapor = Moles::from_reduced(Array1::zeros(eos.components()));
                     let mut moles_liquid = moles_vapor.clone();
-                    moles_vapor
-                        .try_set(i, vle_pure.vapor().total_moles)
-                        .unwrap();
-                    moles_liquid
-                        .try_set(i, vle_pure.liquid().total_moles)
-                        .unwrap();
+                    moles_vapor.set(i, vle_pure.vapor().total_moles);
+                    moles_liquid.set(i, vle_pure.liquid().total_moles);
                     let vapor = State::new_nvt(
                         eos,
                         vle_pure.vapor().temperature,

@@ -24,7 +24,7 @@ impl NonAddHardSphereFunctional {
 
 impl<N> FunctionalContributionDual<N> for NonAddHardSphereFunctional
 where
-    N: DualNum<f64> + ScalarOperand,
+    N: DualNum<f64> + Copy + ScalarOperand,
 {
     fn weight_functions(&self, temperature: N) -> WeightFunctionInfo<N> {
         let p = &self.parameters;
@@ -66,7 +66,6 @@ where
         // weighted densities
         let n0i = weighted_densities.slice_axis(Axis(0), Slice::new(0, Some(n as isize), 1));
         let n2vi: Vec<_> = (0..dim)
-            .into_iter()
             .map(|i| {
                 weighted_densities.slice_axis(
                     Axis(0),
@@ -146,7 +145,7 @@ where
     }
 }
 
-pub fn non_additive_hs_energy_density<S, N: DualNum<f64> + ScalarOperand>(
+pub fn non_additive_hs_energy_density<S, N: DualNum<f64> + Copy + ScalarOperand>(
     parameters: &SaftVRQMieParameters,
     d_hs_ij: &Array2<N>,
     d_hs_add_ij: &Array2<N>,

@@ -1,12 +1,12 @@
 //! Adsorption profiles and isotherms.
 use super::functional::{HelmholtzEnergyFunctional, DFT};
 use super::solver::DFTSolver;
+use feos_core::si::{Energy, MolarEnergy, Moles, Pressure, Temperature};
 use feos_core::{
-    Contributions, DensityInitialization, EosError, EosResult, EosUnit, EquationOfState,
-    SolverOptions, State, StateBuilder,
+    Components, Contributions, DensityInitialization, EosError, EosResult, Residual, SolverOptions,
+    State, StateBuilder,
 };
-use ndarray::{Array1, Dimension, Ix1, Ix3, RemoveAxis};
-use quantity::si::{SIArray1, SIArray2, SINumber, SIUnit};
+use ndarray::{Array1, Array2, Dimension, Ix1, Ix3, RemoveAxis};
 use std::iter;
 use std::sync::Arc;
 
@@ -30,7 +30,6 @@ const TOL_ADSORPTION_EQUILIBRIUM: f64 = 1e-8;
 /// Container structure for the calculation of adsorption isotherms.
 pub struct Adsorption<D: Dimension, F> {
     components: usize,
-    dimension: i32,
     pub profiles: Vec<EosResult<PoreProfile<D, F>>>,
 }
 
@@ -42,19 +41,13 @@ pub type Adsorption3D<F> = Adsorption<Ix3, F>;
 impl<D: Dimension + RemoveAxis + 'static, F: HelmholtzEnergyFunctional + FluidParameters>
     Adsorption<D, F>
 where
-    SINumber: std::fmt::Display,
     D::Larger: Dimension<Smaller = D>,
     D::Smaller: Dimension<Larger = D>,
     <D::Larger as Dimension>::Larger: Dimension<Smaller = D::Larger>,
 {
-    fn new<S: PoreSpecification<D>>(
-        functional: &Arc<DFT<F>>,
-        pore: &S,
-        profiles: Vec<EosResult<PoreProfile<D, F>>>,
-    ) -> Self {
+    fn new(functional: &Arc<DFT<F>>, profiles: Vec<EosResult<PoreProfile<D, F>>>) -> Self {
         Self {
             components: functional.components(),
-            dimension: pore.dimension(),
             profiles,
         }
     }
@@ -62,8 +55,8 @@ where
     /// Calculate an adsorption isotherm (starting at low pressure)
     pub fn adsorption_isotherm<S: PoreSpecification<D>>(
         functional: &Arc<DFT<F>>,
-        temperature: SINumber,
-        pressure: &SIArray1,
+        temperature: Temperature,
+        pressure: &Pressure<Array1<f64>>,
         pore: &S,
         molefracs: Option<&Array1<f64>>,
         solver: Option<&DFTSolver>,
@@ -82,8 +75,8 @@ where
     /// Calculate an desorption isotherm (starting at high pressure)
     pub fn desorption_isotherm<S: PoreSpecification<D>>(
         functional: &Arc<DFT<F>>,
-        temperature: SINumber,
-        pressure: &SIArray1,
+        temperature: Temperature,
+        pressure: &Pressure<Array1<f64>>,
         pore: &S,
         molefracs: Option<&Array1<f64>>,
         solver: Option<&DFTSolver>,
@@ -100,7 +93,6 @@ where
         )?;
         Ok(Adsorption::new(
             functional,
-            pore,
             isotherm.profiles.into_iter().rev().collect(),
         ))
     }
@@ -108,8 +100,8 @@ where
     /// Calculate an equilibrium isotherm
     pub fn equilibrium_isotherm<S: PoreSpecification<D>>(
         functional: &Arc<DFT<F>>,
-        temperature: SINumber,
-        pressure: &SIArray1,
+        temperature: Temperature,
+        pressure: &Pressure<Array1<f64>>,
         pore: &S,
         molefracs: Option<&Array1<f64>>,
         solver: Option<&DFTSolver>,
@@ -159,7 +151,6 @@ where
                     .chain(desorption.into_iter())
                     .collect(),
                 components: functional.components(),
-                dimension: pore.dimension(),
             })
         } else {
             let adsorption = Self::adsorption_isotherm(
@@ -189,21 +180,21 @@ where
                 .zip(desorption.profiles.into_iter())
                 .map(|((is_ads, a), d)| if is_ads { a } else { d })
                 .collect();
-            Ok(Adsorption::new(functional, pore, profiles))
+            Ok(Adsorption::new(functional, profiles))
         }
     }
 
     fn isotherm<S: PoreSpecification<D>>(
         functional: &Arc<DFT<F>>,
-        temperature: SINumber,
-        pressure: &SIArray1,
+        temperature: Temperature,
+        pressure: &Pressure<Array1<f64>>,
         pore: &S,
         molefracs: Option<&Array1<f64>>,
         density_initialization: DensityInitialization,
         solver: Option<&DFTSolver>,
     ) -> EosResult<Adsorption<D, F>> {
-        let moles =
-            functional.validate_moles(molefracs.map(|x| x * SIUnit::reference_moles()).as_ref())?;
+        let moles = functional
+            .validate_moles(molefracs.map(|x| Moles::from_reduced(x.clone())).as_ref())?;
         let mut profiles: Vec<EosResult<PoreProfile<D, F>>> = Vec::with_capacity(pressure.len());
 
         // On the first iteration, initialize the density profile according to the direction
@@ -251,22 +242,22 @@ where
             };
         }
 
-        Ok(Adsorption::new(functional, pore, profiles))
+        Ok(Adsorption::new(functional, profiles))
     }
 
     /// Calculate the phase transition from an empty to a filled pore.
     pub fn phase_equilibrium<S: PoreSpecification<D>>(
         functional: &Arc<DFT<F>>,
-        temperature: SINumber,
-        p_min: SINumber,
-        p_max: SINumber,
+        temperature: Temperature,
+        p_min: Pressure,
+        p_max: Pressure,
         pore: &S,
         molefracs: Option<&Array1<f64>>,
         solver: Option<&DFTSolver>,
         options: SolverOptions,
     ) -> EosResult<Adsorption<D, F>> {
-        let moles =
-            functional.validate_moles(molefracs.map(|x| x * SIUnit::reference_moles()).as_ref())?;
+        let moles = functional
+            .validate_moles(molefracs.map(|x| Moles::from_reduced(x.clone())).as_ref())?;
 
         // calculate density profiles for the minimum and maximum pressure
         let vapor_bulk = StateBuilder::new(functional)
@@ -275,36 +266,29 @@ where
             .moles(&moles)
             .vapor()
             .build()?;
-        let liquid_bulk = StateBuilder::new(functional)
+        let bulk_init = StateBuilder::new(functional)
             .temperature(temperature)
             .pressure(p_max)
             .moles(&moles)
             .liquid()
             .build()?;
+        let liquid_bulk = StateBuilder::new(functional)
+            .temperature(temperature)
+            .pressure(p_max)
+            .moles(&moles)
+            .vapor()
+            .build()?;
 
-        let mut vapor = pore.initialize(&vapor_bulk, None, None)?.solve(None)?;
-        let mut liquid = pore.initialize(&liquid_bulk, None, None)?.solve(solver)?;
+        let mut vapor = pore.initialize(&vapor_bulk, None, None)?.solve(solver)?;
+        let mut liquid = pore.initialize(&bulk_init, None, None)?.solve(solver)?;
 
-        // calculate initial value for the molar gibbs energy
-        let nv = vapor.profile.bulk.density
-            * (vapor.profile.moles()
-                * vapor
-                    .profile
-                    .bulk
-                    .partial_molar_volume(Contributions::Total))
-            .sum();
-        let nl = liquid.profile.bulk.density
-            * (liquid.profile.moles()
-                * liquid
-                    .profile
-                    .bulk
-                    .partial_molar_volume(Contributions::Total))
-            .sum();
-        let f = |s: &PoreProfile<D, F>, n: SINumber| -> EosResult<_> {
-            Ok(s.grand_potential.unwrap()
-                + s.profile.bulk.molar_gibbs_energy(Contributions::Total) * n)
-        };
-        let mut g = (f(&liquid, nl)? - f(&vapor, nv)?) / (nl - nv);
+        // calculate initial value for bulk density
+        let n_dp_drho_v = (vapor.profile.moles() * vapor_bulk.dp_drho(Contributions::Total)).sum();
+        let n_dp_drho_l =
+            (liquid.profile.moles() * liquid_bulk.dp_drho(Contributions::Total)).sum();
+        let mut rho = (vapor.grand_potential.unwrap() + n_dp_drho_v
+            - (liquid.grand_potential.unwrap() + n_dp_drho_l))
+            / (n_dp_drho_v / vapor_bulk.density - n_dp_drho_l / liquid_bulk.density);
 
         // update filled pore with limited step size
         let mut bulk = StateBuilder::new(functional)
@@ -313,67 +297,46 @@ where
             .moles(&moles)
             .vapor()
             .build()?;
-        let g_liquid = liquid.profile.bulk.molar_gibbs_energy(Contributions::Total);
-        let steps = (10.0 * (g - g_liquid)).to_reduced(g_liquid)?.abs().ceil() as usize;
-        let delta_g = (g - g_liquid) / steps as f64;
+        let rho0 = liquid_bulk.density;
+        let steps = (10.0 * (rho - rho0) / rho0).into_value().abs().ceil() as usize;
+        let delta_rho = (rho - rho0) / steps as f64;
         for i in 1..=steps {
-            let g_i = g_liquid + i as f64 * delta_g;
-            bulk = bulk.update_gibbs_energy(g_i)?;
+            let rho_i = rho0 + i as f64 * delta_rho;
+            bulk = State::new_nvt(functional, temperature, moles.sum() / rho_i, &moles)?;
             liquid = liquid.update_bulk(&bulk).solve(solver)?;
         }
 
         for _ in 0..options.max_iter.unwrap_or(MAX_ITER_ADSORPTION_EQUILIBRIUM) {
             // update empty pore
-            vapor = vapor.update_bulk(&bulk).solve(None)?;
+            vapor = vapor.update_bulk(&bulk).solve(solver)?;
 
             // update filled pore
             liquid = liquid.update_bulk(&bulk).solve(solver)?;
 
             // calculate moles
-            let nv = vapor.profile.bulk.density
-                * (vapor.profile.moles()
-                    * vapor
-                        .profile
-                        .bulk
-                        .partial_molar_volume(Contributions::Total))
-                .sum();
-            let nl = liquid.profile.bulk.density
-                * (liquid.profile.moles()
-                    * liquid
-                        .profile
-                        .bulk
-                        .partial_molar_volume(Contributions::Total))
-                .sum();
-
-            // check for a trivial solution
-            if nl.to_reduced(nv)? - 1.0 < 1e-5 {
-                return Err(EosError::TrivialSolution);
-            }
+            let n_dp_drho = ((liquid.profile.moles() - vapor.profile.moles())
+                * bulk.dp_drho(Contributions::Total))
+            .sum();
 
             // Newton step
-            let delta_g =
-                (vapor.grand_potential.unwrap() - liquid.grand_potential.unwrap()) / (nv - nl);
-            if delta_g.to_reduced(SIUnit::reference_molar_energy())?.abs()
-                < options.tol.unwrap_or(TOL_ADSORPTION_EQUILIBRIUM)
-            {
-                return Ok(Adsorption::new(
-                    functional,
-                    pore,
-                    vec![Ok(vapor), Ok(liquid)],
-                ));
+            let delta_rho = (liquid.grand_potential.unwrap() - vapor.grand_potential.unwrap())
+                / n_dp_drho
+                * bulk.density;
+            if delta_rho.to_reduced().abs() < options.tol.unwrap_or(TOL_ADSORPTION_EQUILIBRIUM) {
+                return Ok(Adsorption::new(functional, vec![Ok(vapor), Ok(liquid)]));
             }
-            g += delta_g;
+            rho += delta_rho;
 
             // update bulk phase
-            bulk = bulk.update_gibbs_energy(g)?;
+            bulk = State::new_nvt(functional, temperature, moles.sum() / rho, &moles)?;
         }
         Err(EosError::NotConverged(
             "Adsorption::phase_equilibrium".into(),
         ))
     }
 
-    pub fn pressure(&self) -> SIArray1 {
-        SIArray1::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
+    pub fn pressure(&self) -> Pressure<Array1<f64>> {
+        Pressure::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
             Ok(p) => {
                 if p.profile.bulk.eos.components() > 1
                     && !p.profile.bulk.is_stable(SolverOptions::default()).unwrap()
@@ -388,66 +351,35 @@ where
                     p.profile.bulk.pressure(Contributions::Total)
                 }
             }
-            Err(_) => f64::NAN * SIUnit::reference_pressure(),
+            Err(_) => Pressure::from_reduced(f64::NAN),
         })
     }
 
-    pub fn molar_gibbs_energy(&self) -> SIArray1 {
-        SIArray1::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
-            Ok(p) => {
-                if p.profile.bulk.eos.components() > 1
-                    && !p.profile.bulk.is_stable(SolverOptions::default()).unwrap()
-                {
-                    p.profile
-                        .bulk
-                        .tp_flash(None, SolverOptions::default(), None)
-                        .unwrap()
-                        .vapor()
-                        .molar_gibbs_energy(Contributions::Total)
-                } else {
-                    p.profile.bulk.molar_gibbs_energy(Contributions::Total)
-                }
-            }
-            Err(_) => f64::NAN * SIUnit::reference_molar_energy(),
-        })
+    pub fn adsorption(&self) -> Moles<Array2<f64>> {
+        Moles::from_shape_fn(
+            (self.components, self.profiles.len()),
+            |(j, i)| match &self.profiles[i] {
+                Ok(p) => p.profile.moles().get(j),
+                Err(_) => Moles::from_reduced(f64::NAN),
+            },
+        )
     }
 
-    pub fn adsorption(&self) -> SIArray2 {
-        SIArray2::from_shape_fn((self.components, self.profiles.len()), |(j, i)| match &self
-            .profiles[i]
-        {
-            Ok(p) => p.profile.moles().get(j),
-            Err(_) => {
-                f64::NAN
-                    * SIUnit::reference_density()
-                    * SIUnit::reference_length().powi(self.dimension)
-            }
-        })
-    }
-
-    pub fn total_adsorption(&self) -> SIArray1 {
-        SIArray1::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
+    pub fn total_adsorption(&self) -> Moles<Array1<f64>> {
+        Moles::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
             Ok(p) => p.profile.total_moles(),
-            Err(_) => {
-                f64::NAN
-                    * SIUnit::reference_density()
-                    * SIUnit::reference_length().powi(self.dimension)
-            }
+            Err(_) => Moles::from_reduced(f64::NAN),
         })
     }
 
-    pub fn grand_potential(&self) -> SIArray1 {
-        SIArray1::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
+    pub fn grand_potential(&self) -> Energy<Array1<f64>> {
+        Energy::from_shape_fn(self.profiles.len(), |i| match &self.profiles[i] {
             Ok(p) => p.grand_potential.unwrap(),
-            Err(_) => {
-                f64::NAN
-                    * SIUnit::reference_pressure()
-                    * SIUnit::reference_length().powi(self.dimension)
-            }
+            Err(_) => Energy::from_reduced(f64::NAN),
         })
     }
 
-    pub fn partial_molar_enthalpy_of_adsorption(&self) -> SIArray2 {
+    pub fn partial_molar_enthalpy_of_adsorption(&self) -> MolarEnergy<Array2<f64>> {
         let h_ads: Vec<_> = self
             .profiles
             .iter()
@@ -458,26 +390,24 @@ where
                     .and_then(|p| p.partial_molar_enthalpy_of_adsorption().ok())
                 {
                     Some(p) => p,
-                    None => {
-                        f64::NAN * Array1::ones(self.components) * SIUnit::reference_molar_energy()
-                    }
+                    None => MolarEnergy::from_reduced(f64::NAN * Array1::ones(self.components)),
                 }
             })
             .collect();
-        SIArray2::from_shape_fn((self.components, self.profiles.len()), |(j, i)| {
+        MolarEnergy::from_shape_fn((self.components, self.profiles.len()), |(j, i)| {
             h_ads[i].get(j)
         })
     }
 
-    pub fn enthalpy_of_adsorption(&self) -> SIArray1 {
-        SIArray1::from_shape_fn(self.profiles.len(), |i| {
+    pub fn enthalpy_of_adsorption(&self) -> MolarEnergy<Array1<f64>> {
+        MolarEnergy::from_shape_fn(self.profiles.len(), |i| {
             match self.profiles[i]
                 .as_ref()
                 .ok()
                 .and_then(|p| p.enthalpy_of_adsorption().ok())
             {
                 Some(p) => p,
-                None => f64::NAN * SIUnit::reference_molar_energy(),
+                None => MolarEnergy::from_reduced(f64::NAN),
             }
         })
     }

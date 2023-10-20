@@ -1,17 +1,18 @@
-use super::{PhaseEquilibrium, SolverOptions, Verbosity};
-use crate::equation_of_state::EquationOfState;
+use super::PhaseEquilibrium;
+use crate::equation_of_state::Residual;
 use crate::errors::{EosError, EosResult};
+use crate::si::{Dimensionless, Moles, Pressure, Temperature};
 use crate::state::{Contributions, DensityInitialization, State};
+use crate::{SolverOptions, Verbosity};
 use ndarray::*;
 use num_dual::linalg::norm;
-use quantity::si::{SIArray1, SINumber};
 use std::sync::Arc;
 
 const MAX_ITER_TP: usize = 400;
 const TOL_TP: f64 = 1e-8;
 
 /// # Flash calculations
-impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
+impl<E: Residual> PhaseEquilibrium<E, 2> {
     /// Perform a Tp-flash calculation. If no initial values are
     /// given, the solution is initialized using a stability analysis.
     ///
@@ -19,9 +20,9 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
     /// containing non-volatile components (e.g. ions).
     pub fn tp_flash(
         eos: &Arc<E>,
-        temperature: SINumber,
-        pressure: SINumber,
-        feed: &SIArray1,
+        temperature: Temperature,
+        pressure: Pressure,
+        feed: &Moles<Array1<f64>>,
         initial_state: Option<&PhaseEquilibrium<E, 2>>,
         options: SolverOptions,
         non_volatile_components: Option<Vec<usize>>,
@@ -38,7 +39,7 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
 }
 
 /// # Flash calculations
-impl<E: EquationOfState> State<E> {
+impl<E: Residual> State<E> {
     /// Perform a Tp-flash calculation using the [State] as feed.
     /// If no initial values are given, the solution is initialized
     /// using a stability analysis.
@@ -157,7 +158,7 @@ impl<E: EquationOfState> State<E> {
     }
 }
 
-impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
+impl<E: Residual> PhaseEquilibrium<E, 2> {
     fn accelerated_successive_substitution(
         &mut self,
         feed_state: &State<E>,
@@ -289,8 +290,9 @@ impl<E: EquationOfState> PhaseEquilibrium<E, 2> {
         beta = rachford_rice(&feed_state.molefracs, k, Some(beta))?;
 
         // update VLE
-        let v = beta * k / (1.0 - beta + beta * k) * feed_state.moles.clone();
-        let l = (1.0 - beta) / (1.0 - beta + beta * k) * feed_state.moles.clone();
+        let v = feed_state.moles.clone() * Dimensionless::from(beta * k / (1.0 - beta + beta * k));
+        let l =
+            feed_state.moles.clone() * Dimensionless::from((1.0 - beta) / (1.0 - beta + beta * k));
         self.update_moles(feed_state.pressure(Contributions::Total), [&v, &l])?;
         Ok(())
     }

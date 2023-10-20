@@ -5,7 +5,6 @@ use feos_core::parameter::{
 };
 use feos_core::python::parameter::*;
 use feos_core::*;
-use ndarray::Array2;
 use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -99,13 +98,12 @@ impl PyUVParameters {
                     None,
                 );
                 let model_record = UVRecord::new(rep[i], att[i], sigma[i], epsilon_k[i]);
-                PureRecord::new(identifier, 1.0, model_record, None)
+                PureRecord::new(identifier, 1.0, model_record)
             })
             .collect();
-        let binary = Array2::from_shape_fn((n, n), |(_, _)| UVBinaryRecord { k_ij: 0.0 });
         Ok(Self(Arc::new(UVParameters::from_records(
             pure_records,
-            binary,
+            None,
         )?)))
     }
 
@@ -138,8 +136,8 @@ impl PyUVParameters {
     }
 }
 
-impl_pure_record!(UVRecord, PyUVRecord, NoRecord, PyNoRecord);
-impl_parameter!(UVParameters, PyUVParameters);
+impl_pure_record!(UVRecord, PyUVRecord);
+impl_parameter!(UVParameters, PyUVParameters, PyUVRecord, PyUVBinaryRecord);
 
 #[pymodule]
 pub fn uvtheory(_py: Python<'_>, m: &PyModule) -> PyResult<()> {

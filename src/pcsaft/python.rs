@@ -1,21 +1,47 @@
 use super::parameters::{PcSaftBinaryRecord, PcSaftParameters, PcSaftRecord};
 use super::DQVariants;
-use feos_core::joback::JobackRecord;
 use feos_core::parameter::{
     BinaryRecord, Identifier, IdentifierOption, Parameter, ParameterError, PureRecord,
     SegmentRecord,
 };
-use feos_core::python::joback::PyJobackRecord;
 use feos_core::python::parameter::*;
 use feos_core::*;
-use ndarray::Array2;
 use numpy::{PyArray2, PyReadonlyArray2, ToPyArray};
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use std::convert::{TryFrom, TryInto};
 use std::sync::Arc;
 
-/// Create a set of PC-Saft parameters from records.
+/// Pure-substance parameters for the PC-Saft equation of state.
+///
+/// Parameters
+/// ----------
+/// m : float
+///     Segment number
+/// sigma : float
+///     Segment diameter in units of Angstrom.
+/// epsilon_k : float
+///     Energetic parameter in units of Kelvin.
+/// mu : float, optional
+///     Dipole moment in units of Debye.
+/// q : float, optional
+///     Quadrupole moment in units of Debye * Angstrom.
+/// kappa_ab : float, optional
+///     Association volume parameter.
+/// epsilon_k_ab : float, optional
+///     Association energy parameter in units of Kelvin.
+/// na : float, optional
+///     Number of association sites of type A.
+/// nb : float, optional
+///     Number of association sites of type B.
+/// nc : float, optional
+///     Number of association sites of type C.
+/// viscosity : List[float], optional
+///     Entropy-scaling parameters for viscosity. Defaults to `None`.
+/// diffusion : List[float], optional
+///     Entropy-scaling parameters for diffusion. Defaults to `None`.
+/// thermal_conductivity : List[float], optional
+///     Entropy-scaling parameters for thermal_conductivity. Defaults to `None`.
 #[pyclass(name = "PcSaftRecord")]
 #[pyo3(
     text_signature = "(m, sigma, epsilon_k, mu=None, q=None, kappa_ab=None, epsilon_k_ab=None, na=None, nb=None, viscosity=None, diffusion=None, thermal_conductivity=None)"
@@ -36,6 +62,7 @@ impl PyPcSaftRecord {
         epsilon_k_ab: Option<f64>,
         na: Option<f64>,
         nb: Option<f64>,
+        nc: Option<f64>,
         viscosity: Option<[f64; 4]>,
         diffusion: Option<[f64; 5]>,
         thermal_conductivity: Option<[f64; 4]>,
@@ -50,6 +77,7 @@ impl PyPcSaftRecord {
             epsilon_k_ab,
             na,
             nb,
+            nc,
             viscosity,
             diffusion,
             thermal_conductivity,
@@ -93,12 +121,17 @@ impl PyPcSaftRecord {
 
     #[getter]
     fn get_na(&self) -> Option<f64> {
-        self.0.association_record.and_then(|a| a.na)
+        self.0.association_record.map(|a| a.na)
     }
 
     #[getter]
     fn get_nb(&self) -> Option<f64> {
-        self.0.association_record.and_then(|a| a.nb)
+        self.0.association_record.map(|a| a.nb)
+    }
+
+    #[getter]
+    fn get_nc(&self) -> Option<f64> {
+        self.0.association_record.map(|a| a.nc)
     }
 
     #[getter]
@@ -123,58 +156,53 @@ impl PyPcSaftRecord {
 
 impl_json_handling!(PyPcSaftRecord);
 
-impl_pure_record!(PcSaftRecord, PyPcSaftRecord, JobackRecord, PyJobackRecord);
-impl_segment_record!(PcSaftRecord, PyPcSaftRecord, JobackRecord, PyJobackRecord);
+impl_pure_record!(PcSaftRecord, PyPcSaftRecord);
+impl_segment_record!(PcSaftRecord, PyPcSaftRecord);
 
 #[pyclass(name = "PcSaftBinaryRecord")]
-#[pyo3(
-    text_signature = "(pure_records, binary_records=None, substances=None, search_option='Name')"
-)]
 #[derive(Clone)]
 pub struct PyPcSaftBinaryRecord(PcSaftBinaryRecord);
+
+#[pymethods]
+impl PyPcSaftBinaryRecord {
+    #[new]
+    fn new(k_ij: Option<f64>, kappa_ab: Option<f64>, epsilon_k_ab: Option<f64>) -> Self {
+        Self(PcSaftBinaryRecord::new(k_ij, kappa_ab, epsilon_k_ab))
+    }
+
+    fn __repr__(&self) -> PyResult<String> {
+        Ok(self.0.to_string())
+    }
+}
+
+impl_json_handling!(PyPcSaftBinaryRecord);
+
 impl_binary_record!(PcSaftBinaryRecord, PyPcSaftBinaryRecord);
 
-/// Create a set of PC-SAFT parameters from records.
-///
-/// Parameters
-/// ----------
-/// pure_records : List[PureRecord]
-///     pure substance records.
-/// binary_records : List[BinaryRecord], optional
-///     binary saft parameter records
-/// substances : List[str], optional
-///     The substances to use. Filters substances from `pure_records` according to
-///     `search_option`.
-///     When not provided, all entries of `pure_records` are used.
-/// search_option : {'Name', 'Cas', 'Inchi', 'IupacName', 'Formula', 'Smiles'}, optional, defaults to 'Name'.
-///     Identifier that is used to search substance.
-///
-/// Returns
-/// -------
-/// PcSaftParameters
 #[pyclass(name = "PcSaftParameters")]
-#[pyo3(
-    text_signature = "(pure_records, binary_records=None, substances=None, search_option='Name')"
-)]
 #[derive(Clone)]
 pub struct PyPcSaftParameters(pub Arc<PcSaftParameters>);
 
-impl_parameter!(PcSaftParameters, PyPcSaftParameters);
+impl_parameter!(
+    PcSaftParameters,
+    PyPcSaftParameters,
+    PyPcSaftRecord,
+    PyPcSaftBinaryRecord
+);
 impl_parameter_from_segments!(PcSaftParameters, PyPcSaftParameters);
 
 #[pymethods]
 impl PyPcSaftParameters {
     #[getter]
-    fn get_k_ij<'py>(&self, py: Python<'py>) -> &'py PyArray2<f64> {
-        self.0.k_ij.view().to_pyarray(py)
+    fn get_k_ij<'py>(&self, py: Python<'py>) -> Option<&'py PyArray2<f64>> {
+        self.0
+            .binary_records
+            .as_ref()
+            .map(|br| br.map(|br| br.k_ij).view().to_pyarray(py))
     }
 
     fn _repr_markdown_(&self) -> String {
         self.0.to_markdown()
-    }
-
-    fn __repr__(&self) -> PyResult<String> {
-        Ok(self.0.to_string())
     }
 }
 
@@ -183,10 +211,11 @@ pub fn pcsaft(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyIdentifier>()?;
     m.add_class::<IdentifierOption>()?;
     m.add_class::<PyChemicalRecord>()?;
-    m.add_class::<PyJobackRecord>()?;
+    m.add_class::<PySmartsRecord>()?;
 
     m.add_class::<DQVariants>()?;
     m.add_class::<PyPcSaftRecord>()?;
+    m.add_class::<PyPcSaftBinaryRecord>()?;
     m.add_class::<PyPureRecord>()?;
     m.add_class::<PySegmentRecord>()?;
     m.add_class::<PyBinaryRecord>()?;

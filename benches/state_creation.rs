@@ -1,20 +1,21 @@
+#![allow(clippy::type_complexity)]
 use criterion::{criterion_group, criterion_main, Criterion};
 use feos::pcsaft::{PcSaft, PcSaftParameters};
+use feos_core::si::*;
 use feos_core::{
     parameter::{IdentifierOption, Parameter},
-    Contributions, DensityInitialization, EquationOfState, PhaseEquilibrium, State,
+    Contributions, DensityInitialization, PhaseEquilibrium, Residual, State, TPSpec,
 };
 use ndarray::{Array, Array1};
-use quantity::si::*;
 use std::sync::Arc;
 
 /// Evaluate NPT constructor
-fn npt<E: EquationOfState>(
+fn npt<E: Residual>(
     (eos, t, p, n, rho0): (
         &Arc<E>,
-        SINumber,
-        SINumber,
-        &SIArray1,
+        Temperature,
+        Pressure,
+        &Moles<Array1<f64>>,
         DensityInitialization,
     ),
 ) {
@@ -22,26 +23,32 @@ fn npt<E: EquationOfState>(
 }
 
 /// Evaluate critical point constructor
-fn critical_point<E: EquationOfState>((eos, n): (&Arc<E>, Option<&SIArray1>)) {
+fn critical_point<E: Residual>((eos, n): (&Arc<E>, Option<&Moles<Array1<f64>>>)) {
     State::critical_point(eos, n, None, Default::default()).unwrap();
 }
 
 /// Evaluate critical point constructor for binary systems at given T or p
-fn critical_point_binary<E: EquationOfState>((eos, tp): (&Arc<E>, SINumber)) {
+fn critical_point_binary<E: Residual, TP>((eos, tp): (&Arc<E>, TP))
+where
+    TPSpec: From<TP>,
+{
     State::critical_point_binary(eos, tp, None, None, Default::default()).unwrap();
 }
 
 /// VLE for pure substance for given temperature or pressure
-fn pure<E: EquationOfState>((eos, t_or_p): (&Arc<E>, SINumber)) {
+fn pure<E: Residual, TP>((eos, t_or_p): (&Arc<E>, TP))
+where
+    TPSpec: From<TP>,
+{
     PhaseEquilibrium::pure(eos, t_or_p, None, Default::default()).unwrap();
 }
 
 /// Evaluate temperature, pressure flash.
-fn tp_flash<E: EquationOfState>((eos, t, p, feed): (&Arc<E>, SINumber, SINumber, &SIArray1)) {
+fn tp_flash<E: Residual>((eos, t, p, feed): (&Arc<E>, Temperature, Pressure, &Moles<Array1<f64>>)) {
     PhaseEquilibrium::tp_flash(eos, t, p, feed, None, Default::default(), None).unwrap();
 }
 
-fn bubble_point<E: EquationOfState>((eos, t, x): (&Arc<E>, SINumber, &Array1<f64>)) {
+fn bubble_point<E: Residual>((eos, t, x): (&Arc<E>, Temperature, &Array1<f64>)) {
     PhaseEquilibrium::bubble_point(
         eos,
         t,
@@ -53,7 +60,7 @@ fn bubble_point<E: EquationOfState>((eos, t, x): (&Arc<E>, SINumber, &Array1<f64
     .unwrap();
 }
 
-fn dew_point<E: EquationOfState>((eos, t, y): (&Arc<E>, SINumber, &Array1<f64>)) {
+fn dew_point<E: Residual>((eos, t, y): (&Arc<E>, Temperature, &Array1<f64>)) {
     PhaseEquilibrium::dew_point(
         eos,
         t,
@@ -65,7 +72,7 @@ fn dew_point<E: EquationOfState>((eos, t, y): (&Arc<E>, SINumber, &Array1<f64>))
     .unwrap();
 }
 
-fn bench_states<E: EquationOfState>(c: &mut Criterion, group_name: &str, eos: &Arc<E>) {
+fn bench_states<E: Residual>(c: &mut Criterion, group_name: &str, eos: &Arc<E>) {
     let ncomponents = eos.components();
     let x = Array::from_elem(ncomponents, 1.0 / ncomponents as f64);
     let n = &x * 100.0 * MOL;

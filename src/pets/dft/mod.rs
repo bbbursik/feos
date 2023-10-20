@@ -2,16 +2,15 @@ use super::eos::PetsOptions;
 use super::parameters::PetsParameters;
 use crate::hard_sphere::{FMTContribution, FMTVersion};
 use dispersion::AttractiveFunctional;
-use feos_core::joback::Joback;
 use feos_core::parameter::Parameter;
-use feos_core::{IdealGasContribution, MolarWeight};
+use feos_core::si::{MolarWeight, GRAM, MOL};
+use feos_core::Components;
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::solvation::PairPotential;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
 use ndarray::{Array1, Array2};
 use num_dual::DualNum;
 use pure_pets_functional::*;
-use quantity::si::*;
 use std::f64::consts::FRAC_PI_6;
 use std::sync::Arc;
 
@@ -25,7 +24,6 @@ pub struct PetsFunctional {
     fmt_version: FMTVersion,
     options: PetsOptions,
     contributions: Vec<Box<dyn FunctionalContribution>>,
-    joback: Joback,
 }
 
 impl PetsFunctional {
@@ -74,31 +72,31 @@ impl PetsFunctional {
             contributions.push(Box::new(att));
         }
 
-        let joback = match &parameters.joback_records {
-            Some(joback_records) => Joback::new(joback_records.clone()),
-            None => Joback::default(parameters.sigma.len()),
-        };
-
-        Self {
+        DFT(Self {
             parameters,
             fmt_version,
             options: pets_options,
             contributions,
-            joback,
-        }
-        .into()
+        })
     }
 }
 
-impl HelmholtzEnergyFunctional for PetsFunctional {
-    fn subset(&self, component_list: &[usize]) -> DFT<Self> {
+impl Components for PetsFunctional {
+    fn components(&self) -> usize {
+        self.parameters.pure_records.len()
+    }
+
+    fn subset(&self, component_list: &[usize]) -> Self {
         Self::with_options(
             Arc::new(self.parameters.subset(component_list)),
             self.fmt_version,
             self.options,
         )
+        .0
     }
+}
 
+impl HelmholtzEnergyFunctional for PetsFunctional {
     fn molecule_shape(&self) -> MoleculeShape {
         MoleculeShape::Spherical(self.parameters.sigma.len())
     }
@@ -112,13 +110,7 @@ impl HelmholtzEnergyFunctional for PetsFunctional {
         &self.contributions
     }
 
-    fn ideal_gas(&self) -> &dyn IdealGasContribution {
-        &self.joback
-    }
-}
-
-impl MolarWeight for PetsFunctional {
-    fn molar_weight(&self) -> SIArray1 {
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
         self.parameters.molarweight.clone() * GRAM / MOL
     }
 }

@@ -4,17 +4,12 @@
 //! of state - with a single contribution to the Helmholtz energy - can be implemented.
 //! The implementation closely follows the form of the equations given in
 //! [this wikipedia article](https://en.wikipedia.org/wiki/Cubic_equations_of_state#Peng%E2%80%93Robinson_equation_of_state).
-use crate::equation_of_state::{
-    EquationOfState, HelmholtzEnergy, HelmholtzEnergyDual, IdealGasContribution,
-};
-use crate::joback::{Joback, JobackRecord};
+use crate::equation_of_state::{Components, HelmholtzEnergy, HelmholtzEnergyDual, Residual};
 use crate::parameter::{Identifier, Parameter, ParameterError, PureRecord};
-use crate::si::{GRAM, MOL};
+use crate::si::{MolarWeight, GRAM, MOL};
 use crate::state::StateHD;
-use crate::MolarWeight;
 use ndarray::{Array1, Array2};
 use num_dual::DualNum;
-use quantity::si::SIArray1;
 use serde::{Deserialize, Serialize};
 use std::f64::consts::SQRT_2;
 use std::fmt;
@@ -64,9 +59,7 @@ pub struct PengRobinsonParameters {
     /// Molar weight in units of g/mol
     molarweight: Array1<f64>,
     /// List of pure component records
-    pure_records: Vec<PureRecord<PengRobinsonRecord, JobackRecord>>,
-    /// List of ideal gas Joback records
-    joback_records: Option<Vec<JobackRecord>>,
+    pure_records: Vec<PureRecord<PengRobinsonRecord>>,
 }
 
 impl std::fmt::Display for PengRobinsonParameters {
@@ -102,22 +95,21 @@ impl PengRobinsonParameters {
                     acentric_factor: acentric_factor[i],
                 };
                 let id = Identifier::default();
-                PureRecord::new(id, molarweight[i], record, None)
+                PureRecord::new(id, molarweight[i], record)
             })
             .collect();
-        PengRobinsonParameters::from_records(records, Array2::zeros([pc.len(); 2]))
+        PengRobinsonParameters::from_records(records, None)
     }
 }
 
 impl Parameter for PengRobinsonParameters {
     type Pure = PengRobinsonRecord;
-    type IdealGas = JobackRecord;
     type Binary = f64;
 
     /// Creates parameters from pure component records.
     fn from_records(
-        pure_records: Vec<PureRecord<Self::Pure, Self::IdealGas>>,
-        binary_records: Array2<Self::Binary>,
+        pure_records: Vec<PureRecord<Self::Pure>>,
+        binary_records: Option<Array2<Self::Binary>>,
     ) -> Result<Self, ParameterError> {
         let n = pure_records.len();
 
@@ -136,30 +128,21 @@ impl Parameter for PengRobinsonParameters {
             kappa[i] = 0.37464 + (1.54226 - 0.26992 * r.acentric_factor) * r.acentric_factor;
         }
 
-        let joback_records = pure_records
-            .iter()
-            .map(|r| r.ideal_gas_record.clone())
-            .collect();
+        let k_ij = binary_records.unwrap_or_else(|| Array2::zeros([n; 2]));
 
         Ok(Self {
             tc,
             a,
             b,
-            k_ij: binary_records,
+            k_ij,
             kappa,
             molarweight,
             pure_records,
-            joback_records,
         })
     }
 
-    fn records(
-        &self,
-    ) -> (
-        &[PureRecord<PengRobinsonRecord, JobackRecord>],
-        &Array2<f64>,
-    ) {
-        (&self.pure_records, &self.k_ij)
+    fn records(&self) -> (&[PureRecord<PengRobinsonRecord>], Option<&Array2<f64>>) {
+        (&self.pure_records, Some(&self.k_ij))
     }
 }
 
@@ -167,7 +150,7 @@ struct PengRobinsonContribution {
     parameters: Arc<PengRobinsonParameters>,
 }
 
-impl<D: DualNum<f64>> HelmholtzEnergyDual<D> for PengRobinsonContribution {
+impl<D: DualNum<f64> + Copy> HelmholtzEnergyDual<D> for PengRobinsonContribution {
     fn helmholtz_energy(&self, state: &StateHD<D>) -> D {
         // temperature dependent a parameter
         let p = &self.parameters;
@@ -204,8 +187,6 @@ impl fmt::Display for PengRobinsonContribution {
 pub struct PengRobinson {
     /// Parameters
     parameters: Arc<PengRobinsonParameters>,
-    /// Ideal gas contributions to the Helmholtz energy
-    ideal_gas: Joback,
     /// Non-ideal contributions to the Helmholtz energy
     contributions: Vec<Box<dyn HelmholtzEnergy>>,
 }
@@ -213,23 +194,24 @@ pub struct PengRobinson {
 impl PengRobinson {
     /// Create a new equation of state from a set of parameters.
     pub fn new(parameters: Arc<PengRobinsonParameters>) -> Self {
-        let ideal_gas = parameters.joback_records.as_ref().map_or_else(
-            || Joback::default(parameters.tc.len()),
-            |j| Joback::new(j.clone()),
-        );
         let contributions: Vec<Box<dyn HelmholtzEnergy>> =
             vec![Box::new(PengRobinsonContribution {
                 parameters: parameters.clone(),
             })];
         Self {
             parameters,
-            ideal_gas,
             contributions,
         }
     }
 }
 
-impl EquationOfState for PengRobinson {
+impl fmt::Display for PengRobinson {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Peng Robinson")
+    }
+}
+
+impl Components for PengRobinson {
     fn components(&self) -> usize {
         self.parameters.b.len()
     }
@@ -237,39 +219,33 @@ impl EquationOfState for PengRobinson {
     fn subset(&self, component_list: &[usize]) -> Self {
         Self::new(Arc::new(self.parameters.subset(component_list)))
     }
+}
 
+impl Residual for PengRobinson {
     fn compute_max_density(&self, moles: &Array1<f64>) -> f64 {
         let b = (moles * &self.parameters.b).sum() / moles.sum();
         0.9 / b
     }
 
-    fn residual(&self) -> &[Box<dyn HelmholtzEnergy>] {
+    fn contributions(&self) -> &[Box<dyn HelmholtzEnergy>] {
         &self.contributions
     }
 
-    fn ideal_gas(&self) -> &dyn IdealGasContribution {
-        &self.ideal_gas
-    }
-}
-
-impl MolarWeight for PengRobinson {
-    fn molar_weight(&self) -> SIArray1 {
-        self.parameters.molarweight.clone() * GRAM / MOL
+    fn molar_weight(&self) -> MolarWeight<Array1<f64>> {
+        &self.parameters.molarweight * (GRAM / MOL)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::phase_equilibria::SolverOptions;
-    use crate::state::State;
-    use crate::Contributions;
-    use crate::{EosResult, Verbosity};
+    use crate::si::{KELVIN, PASCAL};
+    use crate::state::{Contributions, State};
+    use crate::{EosResult, SolverOptions, Verbosity};
     use approx::*;
-    use quantity::si::*;
     use std::sync::Arc;
 
-    fn pure_record_vec() -> Vec<PureRecord<PengRobinsonRecord, JobackRecord>> {
+    fn pure_record_vec() -> Vec<PureRecord<PengRobinsonRecord>> {
         let records = r#"[
             {
                 "identifier": {
@@ -313,8 +289,7 @@ mod tests {
         let propane = mixture[0].clone();
         let tc = propane.model_record.tc;
         let pc = propane.model_record.pc;
-        let parameters =
-            PengRobinsonParameters::from_records(vec![propane], Array2::zeros((1, 1)))?;
+        let parameters = PengRobinsonParameters::new_pure(propane)?;
         let pr = Arc::new(PengRobinson::new(Arc::new(parameters)));
         let options = SolverOptions::new().verbosity(Verbosity::Iter);
         let cp = State::critical_point(&pr, None, None, options)?;

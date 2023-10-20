@@ -5,14 +5,15 @@
 //! creation.
 use criterion::{criterion_group, criterion_main, Criterion};
 use feos::pcsaft::{PcSaft, PcSaftParameters};
+use feos_core::si::*;
 use feos_core::{
     parameter::{IdentifierOption, Parameter},
-    Derivative, EquationOfState, HelmholtzEnergy, HelmholtzEnergyDual, State, StateHD,
+    Derivative, HelmholtzEnergy, HelmholtzEnergyDual, Residual, State, StateHD,
 };
 use ndarray::{arr1, Array};
 use num_dual::DualNum;
-use quantity::si::*;
 use std::sync::Arc;
+use typenum::P3;
 
 /// Helper function to create a state for given parameters.
 /// - temperature is 80% of critical temperature,
@@ -28,7 +29,7 @@ fn state_pcsaft(parameters: PcSaftParameters) -> State<PcSaft> {
 }
 
 /// Residual Helmholtz energy given an equation of state and a StateHD.
-fn a_res<D: DualNum<f64>, E: EquationOfState>(inp: (&Arc<E>, &StateHD<D>)) -> D
+fn a_res<D: DualNum<f64> + Copy, E: Residual>(inp: (&Arc<E>, &StateHD<D>)) -> D
 where
     (dyn HelmholtzEnergy + 'static): HelmholtzEnergyDual<D>,
 {
@@ -36,7 +37,7 @@ where
 }
 
 /// Benchmark for evaluation of the Helmholtz energy for different dual number types.
-fn bench_dual_numbers<E: EquationOfState>(c: &mut Criterion, group_name: &str, state: State<E>) {
+fn bench_dual_numbers<E: Residual>(c: &mut Criterion, group_name: &str, state: State<E>) {
     let mut group = c.benchmark_group(group_name);
     group.bench_function("a_f64", |b| {
         b.iter(|| a_res((&state.eos, &state.derive0())))
@@ -123,7 +124,7 @@ fn methane_co2_pcsaft(c: &mut Criterion) {
 
     // 230 K, 50 bar, x0 = 0.15
     let temperature = 230.0 * KELVIN;
-    let density = 24.16896 * KILO * MOL / METER.powi(3);
+    let density = 24.16896 * KILO * MOL / METER.powi::<P3>();
     let volume = 10.0 * MOL / density;
     let x = arr1(&[0.15, 0.85]);
     let moles = &x * 10.0 * MOL;
