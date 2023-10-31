@@ -125,6 +125,24 @@ macro_rules! impl_profile {
                 ))
             }
 
+            /// Calculate the entropy density of the inhomogeneous system for each (residual) contribution.
+            /// 
+            ///
+            /// Parameters
+            /// ----------
+            /// Returns
+            /// -------
+            /// Vec<Array<f64,D>> (not SiArray!)
+            #[getter]
+            fn get_entropy_density_contributions<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr<f64>>> {
+                let n = self.0.profile.entropy_density_contributions()?;
+                Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
+            }
+
+
             /// Calculate the entropy of the inhomogeneous system.
             ///
             /// Parameters
@@ -221,6 +239,27 @@ macro_rules! impl_1d_profile {
             [$([0, $ax]),+],
             PySIArray3
         );
+        #[pymethods]
+        impl $struct {
+            #[getter]
+            fn get_viscosity_reference(
+                &mut self,
+                // contributions: PyContributions,
+            ) -> PyResult<PySIArray1> {
+                Ok(PySIArray1::from(
+                    self.0.profile.viscosity_reference_1d()?,
+                ))
+            }
+
+            #[getter]
+            fn get_weighted_densities_entropy<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py PyArray2<f64>>> {
+                let n = self.0.profile.weighted_densities_entropy()?;
+                Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
+            }
+        }
     };
 }
 

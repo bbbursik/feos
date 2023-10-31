@@ -15,6 +15,7 @@ mod profile;
 pub mod solvation;
 mod solver;
 mod weight_functions;
+pub mod entropy_scaling;
 
 pub use convolver::{Convolver, ConvolverFFT};
 pub use functional::{HelmholtzEnergyFunctional, MoleculeShape, DFT};

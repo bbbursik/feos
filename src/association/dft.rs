@@ -4,6 +4,7 @@ use feos_core::EosResult;
 use feos_dft::{
     FunctionalContributionDual, WeightFunction, WeightFunctionInfo, WeightFunctionShape,
 };
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use num_dual::DualNum;
 use std::f64::consts::PI;
 use std::ops::MulAssign;
@@ -251,3 +252,14 @@ impl<P: HardSphereProperties> Association<P> {
         rhoc * xc.mapv(f)
     }
 }
+
+impl EntropyScalingFunctionalContribution for Association<dyn HardSphereProperties> {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let p = &self.parameters;
+        let r = p.hs_diameter(temperature) * 0.5;
+        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+            WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
+            true,
+        )
+    }
+} 

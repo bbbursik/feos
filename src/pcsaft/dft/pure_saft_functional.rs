@@ -317,3 +317,35 @@ impl fmt::Display for PureAttFunctional {
         write!(f, "Pure attractive")
     }
 }
+
+
+impl EntropyScalingFunctionalContribution for PureFMTAssocFunctional {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let r = self.parameters.hs_diameter(temperature) * 0.5;
+        WeightFunctionInfo::new(self.parameters.component_index().clone(), false)
+        .add(
+            WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
+            false,
+        )
+    }
+}
+impl EntropyScalingFunctionalContribution for PureChainFunctional {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let d = self.parameters.hs_diameter(temperature);
+        WeightFunctionInfo::new(self.parameters.component_index().clone(), false).add(
+            WeightFunction::new_scaled(d.clone(), WeightFunctionShape::Theta),
+            true,
+        )
+    }
+}
+
+impl EntropyScalingFunctionalContribution for PureAttFunctional {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let d = self.parameters.hs_diameter(temperature);
+        const PSI: f64 = 1.3862; // Homosegmented DFT (Sauer2017)
+        WeightFunctionInfo::new(self.parameters.component_index().clone(), false).add(
+            WeightFunction::new_scaled(d * PSI, WeightFunctionShape::Theta),
+            true,
+        )
+    }
+}

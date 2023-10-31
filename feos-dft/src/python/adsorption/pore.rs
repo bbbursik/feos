@@ -255,7 +255,7 @@ macro_rules! impl_pore {
         #[pymethods]
         impl PyPore3D {
             #[new]
-            #[pyo3(text_signature = "(system_size, n_grid, coordinates, sigma_ss, epsilon_k_ss, angles=None, potential_cutoff=None, cutoff_radius=None)")]
+            #[pyo3(text_signature = "(system_size, n_grid, coordinates, sigma_ss, epsilon_k_ss, angles=None, potential_cutoff=None, cutoff_radius=None, l_grid=None)")]
             fn new(
                 system_size: [PySINumber; 3],
                 n_grid: [usize; 3],
@@ -265,6 +265,7 @@ macro_rules! impl_pore {
                 angles: Option<[PyAngle; 3]>,
                 potential_cutoff: Option<f64>,
                 cutoff_radius: Option<PySINumber>,
+                l_grid: Option<[PySINumber; 3]>,
             ) -> PyResult<Self> {
                 Ok(Self(Pore3D::new(
                     [system_size[0].try_into()?, system_size[1].try_into()?, system_size[2].try_into()?],
@@ -275,6 +276,7 @@ macro_rules! impl_pore {
                     angles.map(|angles| [angles[0].into(), angles[1].into(), angles[2].into()]),
                     potential_cutoff,
                     cutoff_radius.map(|c| c.try_into()).transpose()?,
+                    l_grid.map(|c| [c[0].into(), c[1].into(), c[2].into()])
                 )))
             }
 

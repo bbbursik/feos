@@ -87,3 +87,14 @@ impl fmt::Display for ChainFunctional {
         write!(f, "Hard chain functional")
     }
 }
+
+impl EntropyScalingFunctionalContribution for ChainFunctional {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let p = &self.parameters;
+        let d = p.hs_diameter(temperature);
+        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+            WeightFunction::new_scaled(d, WeightFunctionShape::Theta),
+            true,
+        )
+    }
+}

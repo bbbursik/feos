@@ -385,3 +385,25 @@ impl FluidParameters for FMTFunctional {
         &self.properties.sigma
     }
 }
+
+/// implement weight functions for entropy scaling for FMTContribution
+impl<P: HardSphereProperties> EntropyScalingFunctionalContribution for HardSphere<P> {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let r = self.properties.hs_diameter(temperature) * 0.5;
+
+        // compare to the actual weight functions for FMT
+        WeightFunctionInfo::new(self.properties.component_index(), false)
+            .add(
+                WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
+                true,
+            )
+            .add(
+                WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Delta),
+                true,
+            )
+            .add(
+                WeightFunction::new_scaled(r.clone(), WeightFunctionShape::DeltaVec),
+                true,
+            )
+    }
+}

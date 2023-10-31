@@ -20,6 +20,7 @@ pub struct Pore3D {
     epsilon_k_ss: Array1<f64>,
     potential_cutoff: Option<f64>,
     cutoff_radius: Option<Length>,
+    l_grid: Option<[Length; 3]>,
 }
 
 impl Pore3D {
@@ -32,6 +33,7 @@ impl Pore3D {
         angles: Option<[Angle; 3]>,
         potential_cutoff: Option<f64>,
         cutoff_radius: Option<Length>,
+        l_grid: Option<[Length; 3]>,
     ) -> Self {
         Self {
             system_size,
@@ -42,6 +44,7 @@ impl Pore3D {
             epsilon_k_ss,
             potential_cutoff,
             cutoff_radius,
+            l_grid,
         }
     }
 }
@@ -58,11 +61,12 @@ impl PoreSpecification<Ix3> for Pore3D {
     ) -> EosResult<PoreProfile3D<F>> {
         let dft: &F = &bulk.eos;
 
-        // generate grid
-        let x = Axis::new_cartesian(self.n_grid[0], self.system_size[0], None);
-        let y = Axis::new_cartesian(self.n_grid[1], self.system_size[1], None);
-        let z = Axis::new_cartesian(self.n_grid[2], self.system_size[2], None);
+        let l_grid = self.l_grid.unwrap_or(self.system_size);
 
+        // generate grid
+       let x = Axis::new_cartesian(self.n_grid[0], l_grid[0], None)?;
+       let y = Axis::new_cartesian(self.n_grid[1], l_grid[1], None)?;
+       let z = Axis::new_cartesian(self.n_grid[2], l_grid[2], None)?;
         let coordinates = self.coordinates.to_reduced();
 
         // temperature

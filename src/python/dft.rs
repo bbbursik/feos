@@ -29,6 +29,8 @@ use feos_dft::interface::*;
 use feos_dft::python::*;
 use feos_dft::solvation::*;
 use feos_dft::*;
+use feos_dft::entropy_scaling::*;
+use feos_dft::fundamental_measure_theory::{FMTFunctional, FMTVersion};
 use numpy::convert::ToPyArray;
 use numpy::{PyArray1, PyArray2, PyArray3, PyArray4};
 use pyo3::exceptions::{PyIndexError, PyValueError};

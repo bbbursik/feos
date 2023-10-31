@@ -134,3 +134,28 @@ impl fmt::Display for AttractiveFunctional {
         write!(f, "Attractive functional")
     }
 }
+
+impl EntropyScalingFunctionalContribution for AttractiveFunctional {
+    fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
+        let p = &self.parameters;
+
+        // // set psi parameter
+        // let mut psi = Array::zeros(p.component_index().len());
+        // let mut j = 0;
+        // for &s in p.component_index().iter() {
+        //     for _ in 0..s {
+        //         psi[j] = if s == 1 {
+        //             1.3862 // Homosegmented DFT (Sauer2017)
+        //         } else {
+        //             1.5357 // Heterosegmented DFT (Mairhofer2018)
+        //         };
+        //         j += 1;
+        //     }
+        // }
+        let d = p.hs_diameter(temperature);
+        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+            WeightFunction::new_scaled(d * PSI_DFT, WeightFunctionShape::Theta),
+            true,
+        )
+    }
+}
