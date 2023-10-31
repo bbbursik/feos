@@ -31,9 +31,9 @@ pub trait EntropyScalingFunctional: HelmholtzEnergyFunctional
     /// Viscosity referaence for entropy scaling for the shear viscosity.
     fn viscosity_reference<D>(
         &self,
-        density: &Density<Array<f64, D::Larger>>,
+        density: &Array<f64, D::Larger>,
         temperature: Temperature,
-    ) -> EosResult<Viscosity<D>>
+    ) -> EosResult<Viscosity<Array<f64, D>>>
     where
         D: Dimension,
         D::Larger: Dimension<Smaller = D>;
@@ -57,10 +57,10 @@ where
     F: HelmholtzEnergyFunctional + EntropyScalingFunctional,
 {
     // getter function for viscosity reference 
-    pub fn viscosity_reference_1d(&self) -> EosResult<Viscosity<Ix1>> {
+    pub fn viscosity_reference_1d(&self) -> EosResult<Viscosity<Array<f64,Ix1>>> {
         self
         .dft
-        .viscosity_reference::<Ix1>(&self.density, self.temperature)
+        .viscosity_reference::<Ix1>(&self.density.to_reduced(), self.temperature)
     }
 
         // provide the weighted densities for entropy scaling

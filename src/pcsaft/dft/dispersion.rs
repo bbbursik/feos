@@ -3,6 +3,7 @@ use super::PcSaftParameters;
 use crate::hard_sphere::HardSphereProperties;
 use crate::pcsaft::eos::dispersion::{A0, A1, A2, B0, B1, B2};
 use feos_core::EosError;
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::{
     FunctionalContributionDual, WeightFunction, WeightFunctionInfo, WeightFunctionShape,
 };
@@ -153,7 +154,7 @@ impl EntropyScalingFunctionalContribution for AttractiveFunctional {
         //     }
         // }
         let d = p.hs_diameter(temperature);
-        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+        WeightFunctionInfo::new(p.component_index().clone().into_owned(), false).add(
             WeightFunction::new_scaled(d * PSI_DFT, WeightFunctionShape::Theta),
             true,
         )

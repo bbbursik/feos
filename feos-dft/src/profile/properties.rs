@@ -126,6 +126,24 @@ where
         ))
     }
 
+    /// Get the individual contributions to the entropy density.
+    ///
+    /// Untested with heterosegmented functionals.
+    pub fn get_entropy_density_contributions(
+        &self,
+    ) -> EosResult<Vec<Array<f64, D>>> {
+        let density = self.density.to_reduced();
+        let temperature = self.temperature.to_reduced();
+        let temperature_dual = Dual64::from(temperature).derivative();
+        let functional_contributions = self.dft.contributions();
+        let weight_functions: Vec<WeightFunctionInfo<Dual64>> = functional_contributions
+            .iter()
+            .map(|c| c.weight_functions(temperature_dual))
+            .collect();
+        let convolver = ConvolverFFT::plan(&self.grid, &weight_functions, None);
+        self.entropy_density_contributions(temperature, &density, &convolver)
+    }
+
     /// Calculate the individual contributions to the entropy density.
     ///
     /// Untested with heterosegmented functionals.

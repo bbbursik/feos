@@ -276,7 +276,7 @@ macro_rules! impl_pore {
                     angles.map(|angles| [angles[0].into(), angles[1].into(), angles[2].into()]),
                     potential_cutoff,
                     cutoff_radius.map(|c| c.try_into()).transpose()?,
-                    l_grid.map(|c| [c[0].into(), c[1].into(), c[2].into()])
+                    l_grid.map(|c| [c[0].try_into()?, c[1].try_into()?, c[2].try_into()?])
                 )))
             }
 

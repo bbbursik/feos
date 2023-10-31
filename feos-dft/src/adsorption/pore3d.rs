@@ -64,9 +64,9 @@ impl PoreSpecification<Ix3> for Pore3D {
         let l_grid = self.l_grid.unwrap_or(self.system_size);
 
         // generate grid
-       let x = Axis::new_cartesian(self.n_grid[0], l_grid[0], None)?;
-       let y = Axis::new_cartesian(self.n_grid[1], l_grid[1], None)?;
-       let z = Axis::new_cartesian(self.n_grid[2], l_grid[2], None)?;
+       let x = Axis::new_cartesian(self.n_grid[0], l_grid[0], None);
+       let y = Axis::new_cartesian(self.n_grid[1], l_grid[1], None);
+       let z = Axis::new_cartesian(self.n_grid[2], l_grid[2], None);
         let coordinates = self.coordinates.to_reduced();
 
         // temperature

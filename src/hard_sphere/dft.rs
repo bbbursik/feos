@@ -1,6 +1,7 @@
 use feos_core::si::MolarWeight;
 use feos_core::{Components, EosResult};
 use feos_dft::adsorption::FluidParameters;
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::solvation::PairPotential;
 use feos_dft::{
     FunctionalContribution, FunctionalContributionDual, HelmholtzEnergyFunctional, MoleculeShape,
@@ -12,7 +13,9 @@ use std::f64::consts::PI;
 use std::fmt;
 use std::sync::Arc;
 
-use super::{HardSphereProperties, MonomerShape};
+use crate::pcsaft::PcSaftParameters;
+
+use super::{HardSphereProperties, MonomerShape, HardSphere};
 
 const PI36M1: f64 = 1.0 / (36.0 * PI);
 const N3_CUTOFF: f64 = 1e-5;
@@ -387,12 +390,14 @@ impl FluidParameters for FMTFunctional {
 }
 
 /// implement weight functions for entropy scaling for FMTContribution
-impl<P: HardSphereProperties> EntropyScalingFunctionalContribution for HardSphere<P> {
+impl<P> EntropyScalingFunctionalContribution for FMTContribution<P>
+where 
+P: HardSphereProperties + Sync + Send, {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let r = self.properties.hs_diameter(temperature) * 0.5;
 
         // compare to the actual weight functions for FMT
-        WeightFunctionInfo::new(self.properties.component_index(), false)
+        WeightFunctionInfo::new(self.properties.component_index().into_owned(), false)
             .add(
                 WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
                 true,

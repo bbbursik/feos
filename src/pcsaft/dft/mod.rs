@@ -1,23 +1,25 @@
+use pure_saft_functional::PureFMTAssocFunctional;
+
+use pure_saft_functional::{PureChainFunctional, PureAttFunctional};
+use typenum::P2;
+
 use super::PcSaftParameters;
-use crate::association::Association;
+use crate::association::{Association, self};
 use crate::hard_sphere::{FMTContribution, FMTVersion};
 use crate::pcsaft::eos::PcSaftOptions;
 use feos_core::parameter::Parameter;
-use feos_core::si::{MolarWeight, GRAM, MOL};
-use feos_core::Components;
+use feos_core::si::{MolarWeight, GRAM, MOL, Temperature, Viscosity, KELVIN, KB, NAV, ANGSTROM, Density};
+use feos_core::{Components, EosResult};
 use feos_dft::adsorption::FluidParameters;
 use feos_dft::solvation::PairPotential;
 use feos_dft::{FunctionalContribution, HelmholtzEnergyFunctional, MoleculeShape, DFT};
-use ndarray::{Array1, Array2};
-use num_traits::One;
-use std::f64::consts::FRAC_PI_6;
+use num_traits::{One};
+use std::f64::consts::{FRAC_PI_6, PI};
 use std::sync::Arc;
-use crate::pcsaft::eos::{PcSaftOptions,omega22};
-use association::AssociationFunctional;
+use crate::pcsaft::eos::{omega22};
 use dispersion::AttractiveFunctional;
 use hard_chain::ChainFunctional;
 use ndarray::{Array, Array1, Array2, Dimension, Axis as Axis_nd, Zip};
-use num_dual::DualNum;
 use feos_dft::entropy_scaling::EntropyScalingFunctional;
 use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 
@@ -25,9 +27,6 @@ mod dispersion;
 mod hard_chain;
 mod polar;
 mod pure_saft_functional;
-use dispersion::AttractiveFunctional;
-use hard_chain::ChainFunctional;
-use pure_saft_functional::*;
 
 /// PC-SAFT Helmholtz energy functional.
 pub struct PcSaftFunctional {
@@ -62,9 +61,10 @@ impl PcSaftFunctional {
         ) && parameters.m.len() == 1
         {
             let fmt_assoc = PureFMTAssocFunctional::new(parameters.clone(), fmt_version);
-            contributions.push(Box::new(fmt_assoc.clone()));
+            contributions.push(Box::new(fmt_assoc));
 
-            entropy_scaling_contributions.push(Box::new(fmt_assoc.clone()));
+            let fmt_assoc = PureFMTAssocFunctional::new(parameters.clone(), fmt_version);
+            entropy_scaling_contributions.push(Box::new(fmt_assoc));
 
             // push second functional, since need a wd for the entropy-sclaing of ideal chain contribution
             entropy_scaling_contributions.insert(
@@ -86,7 +86,7 @@ impl PcSaftFunctional {
             contributions.push(Box::new(hs.clone()));
 
             //push second chain functional, since need a wd for the entropy-sclaing of ideal chain contribution
-            entropy_scaling_contributions.push(Box::new(hs.clone()));
+            entropy_scaling_contributions.push(Box::new(hs));
             entropy_scaling_contributions.insert(
                 0,
                 Box::new(ChainFunctional::new(parameters.clone()).clone()),
@@ -111,8 +111,14 @@ impl PcSaftFunctional {
                     saft_options.max_iter_cross_assoc,
                     saft_options.tol_cross_assoc,
                 );
-                contributions.push(Box::new(assoc.clone()));
-                entropy_scaling_contributions.push(Box::new(assoc.clone()));
+                contributions.push(Box::new(assoc));
+                let assoc = Association::new(
+                    &parameters,
+                    &parameters.association,
+                    saft_options.max_iter_cross_assoc,
+                    saft_options.tol_cross_assoc,
+                );
+                entropy_scaling_contributions.push(Box::new(assoc));
                         }
         }
 
@@ -121,6 +127,7 @@ impl PcSaftFunctional {
             fmt_version,
             options: saft_options,
             contributions,
+            entropy_scaling_contributions
         })
     }
 }
@@ -181,7 +188,7 @@ impl PairPotential for PcSaftFunctional {
     }
 }
 
-impl EntropyScalingFunctional<SIUnit> for PcSaftFunctional {
+impl EntropyScalingFunctional for PcSaftFunctional {
     fn entropy_scaling_contributions(&self) -> &[Box<dyn EntropyScalingFunctionalContribution>] {
         &self.entropy_scaling_contributions
     }

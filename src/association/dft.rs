@@ -253,11 +253,11 @@ impl<P: HardSphereProperties> Association<P> {
     }
 }
 
-impl EntropyScalingFunctionalContribution for Association<dyn HardSphereProperties> {
+impl<PcSaftParameters: HardSphereProperties + Send + Sync> EntropyScalingFunctionalContribution for Association<PcSaftParameters> {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let p = &self.parameters;
         let r = p.hs_diameter(temperature) * 0.5;
-        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+        WeightFunctionInfo::new(p.component_index().into_owned(), false).add(
             WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
             true,
         )

@@ -1,6 +1,7 @@
 use super::PcSaftParameters;
 use crate::hard_sphere::HardSphereProperties;
 use feos_core::EosError;
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::{
     FunctionalContributionDual, WeightFunction, WeightFunctionInfo, WeightFunctionShape,
 };
@@ -92,7 +93,7 @@ impl EntropyScalingFunctionalContribution for ChainFunctional {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let p = &self.parameters;
         let d = p.hs_diameter(temperature);
-        WeightFunctionInfo::new(p.component_index().clone(), false).add(
+        WeightFunctionInfo::new(p.component_index().clone().into_owned(), false).add(
             WeightFunction::new_scaled(d, WeightFunctionShape::Theta),
             true,
         )

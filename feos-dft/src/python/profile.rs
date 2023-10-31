@@ -138,7 +138,7 @@ macro_rules! impl_profile {
                 &self,
                 py: Python<'py>,
             ) -> PyResult<Vec<&'py $arr<f64>>> {
-                let n = self.0.profile.entropy_density_contributions()?;
+                let n = self.0.profile.get_entropy_density_contributions()?;
                 Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
             }
 

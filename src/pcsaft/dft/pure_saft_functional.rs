@@ -5,6 +5,7 @@ use crate::hard_sphere::{FMTVersion, HardSphereProperties};
 use crate::pcsaft::eos::dispersion::{A0, A1, A2, B0, B1, B2};
 use crate::pcsaft::eos::polar::{AD, AQ, BD, BQ, CD, CQ, PI_SQ_43};
 use feos_core::{EosError, EosResult};
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::{
     FunctionalContributionDual, WeightFunction, WeightFunctionInfo, WeightFunctionShape,
 };
@@ -322,7 +323,7 @@ impl fmt::Display for PureAttFunctional {
 impl EntropyScalingFunctionalContribution for PureFMTAssocFunctional {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let r = self.parameters.hs_diameter(temperature) * 0.5;
-        WeightFunctionInfo::new(self.parameters.component_index().clone(), false)
+        WeightFunctionInfo::new(self.parameters.component_index().clone().into_owned(), false)
         .add(
             WeightFunction::new_scaled(r.clone(), WeightFunctionShape::Theta),
             false,
@@ -332,7 +333,7 @@ impl EntropyScalingFunctionalContribution for PureFMTAssocFunctional {
 impl EntropyScalingFunctionalContribution for PureChainFunctional {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let d = self.parameters.hs_diameter(temperature);
-        WeightFunctionInfo::new(self.parameters.component_index().clone(), false).add(
+        WeightFunctionInfo::new(self.parameters.component_index().clone().into_owned(), false).add(
             WeightFunction::new_scaled(d.clone(), WeightFunctionShape::Theta),
             true,
         )
@@ -343,7 +344,7 @@ impl EntropyScalingFunctionalContribution for PureAttFunctional {
     fn weight_functions_entropy(&self, temperature: f64) -> WeightFunctionInfo<f64> {
         let d = self.parameters.hs_diameter(temperature);
         const PSI: f64 = 1.3862; // Homosegmented DFT (Sauer2017)
-        WeightFunctionInfo::new(self.parameters.component_index().clone(), false).add(
+        WeightFunctionInfo::new(self.parameters.component_index().clone().into_owned(), false).add(
             WeightFunction::new_scaled(d * PSI, WeightFunctionShape::Theta),
             true,
         )
