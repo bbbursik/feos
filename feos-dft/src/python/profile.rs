@@ -118,6 +118,23 @@ macro_rules! impl_profile {
                 Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
             }
 
+            /// Calculate the entropy density of the inhomogeneous system for each contribution.
+            /// 
+            ///
+            /// Parameters
+            /// ----------
+            /// Returns
+            /// -------
+            /// Vec<Array<f64,D>> (not SiArray!)
+            #[getter]
+            fn get_entropy_density_contributions<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr<f64>>> {
+                let n = self.0.profile.entropy_density_contributions()?;
+                Ok(n.into_iter().map(|n| n.view().to_pyarray(py)).collect())
+            }
+
             #[getter]
             fn get_functional_derivative<'py>(
                 &self,

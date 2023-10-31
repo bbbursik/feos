@@ -1,5 +1,6 @@
 use super::PcSaftParameters;
 use crate::pcsaft::eos::{omega22, PcSaftOptions};
+use crate::pcsaft::eos::{omega22, PcSaftOptions};
 use association::AssociationFunctional;
 use dispersion::AttractiveFunctional;
 use crate::association::Association;
@@ -8,7 +9,10 @@ use crate::pcsaft::eos::PcSaftOptions;
 use feos_core::joback::Joback;
 use feos_core::parameter::Parameter;
 use feos_core::{EosError, EosUnit, IdealGasContribution, MolarWeight};
+use feos_core::{EosError, EosUnit, IdealGasContribution, MolarWeight};
 use feos_dft::adsorption::FluidParameters;
+use feos_dft::entropy_scaling::EntropyScalingFunctional;
+use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::entropy_scaling::EntropyScalingFunctional;
 use feos_dft::entropy_scaling::EntropyScalingFunctionalContribution;
 use feos_dft::fundamental_measure_theory::{
@@ -245,6 +249,119 @@ impl EntropyScalingFunctional<SIUnit> for PcSaftFunctional {
         //
         let visc_ref = Zip::from(x.lanes(Axis_nd(0)))
         .map_collect(|x| {
+            // Sum over `j` at every grid point
+            let phi_i = phi
+                .outer_iter()
+                .map(|v| (&v * &x).sum())
+                .collect::<Array1<f64>>();
+            (&x * &ce_eos / &phi_i).sum()
+        });
+
+        // Return
+        Ok(visc_ref * SIUnit::reference_viscosity())
+    }
+
+    fn viscosity_correlation<D>(
+        &self,
+        s_res: &Array<f64, D>,
+        density: &SIArray<D::Larger>,
+    ) -> Result<Array<f64, D>, EosError>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        // Extract references to viscosity parameters
+        let coefficients = self
+            .parameters
+            .viscosity
+            .as_ref()
+            .expect("Missing viscosity coefficients");
+
+        // Mole fraction at every grid point
+        let x = (density / &density.sum_axis(Axis_nd(0))).into_value()?;
+
+        // Scale residual entropy with mean chain length
+        let mut m = Array::zeros(density.raw_dim());
+        for mut lane in m.lanes_mut(Axis_nd(0)) {
+            lane.assign(&self.parameters.m);
+        }
+        let m = (&x * &m).sum_axis(Axis_nd(0));
+        let s = s_res / &m;
+
+        // Mixture parameters
+        let mut pref = Array::zeros(x.raw_dim());
+        for mut lane in pref.lanes_mut(Axis_nd(0)) {
+            lane.assign(&self.parameters.m);
+        }
+        Zip::from(pref.lanes_mut(Axis_nd(0)))
+            .and(x.lanes(Axis_nd(0)))
+            .for_each(|mut pl, xl| pl *= &xl);
+        pref = &pref / &m;
+
+        let a = Zip::from(x.lanes(Axis_nd(0))).map_collect(|xl| (&coefficients.row(0) * &xl).sum());
+        let b =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(1) * &pl).sum());
+        let c =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(2) * &pl).sum());
+        let d =
+            Zip::from(pref.lanes(Axis_nd(0))).map_collect(|pl| (&coefficients.row(3) * &pl).sum());
+
+        // Return
+        Ok(((d * &s + c) * &s + b) * s + a)
+        // Ok(a + b * &s + c * &s.powi(2) + d * &s.powi(3))
+    }
+}
+
+impl EntropyScalingFunctional<SIUnit> for PcSaftFunctional {
+    fn entropy_scaling_contributions(&self) -> &[Box<dyn EntropyScalingFunctionalContribution>] {
+        &self.entropy_scaling_contributions
+    }
+
+    fn viscosity_reference<D>(
+        &self,
+        density: &SIArray<D::Larger>,
+        temperature: SINumber,
+    ) -> Result<SIArray<D>, EosError>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        // Extracting parameters and molar weight
+        let p = &self.parameters;
+        let mw = &p.molarweight;
+        let n_comp = mw.len();
+
+        // Pure references for each component (do only depend on temperature);
+        // one reference per component, no grid distribution required
+        let ce_eos: Array1<f64> = (0..n_comp)
+            .map(|i| {
+                let tr = (temperature / p.epsilon_k[i] / KELVIN)
+                    .into_value()
+                    .unwrap();
+                (5.0 / 16.0
+                    * (mw[i] * GRAM / MOL * KB / NAV * temperature / PI)
+                        .sqrt()
+                        .unwrap()
+                    / omega22(tr)
+                    / (p.sigma[i] * ANGSTROM).powi(2))
+                .to_reduced(SIUnit::reference_viscosity())
+                .unwrap()
+            })
+            .collect();
+
+        // Factor `phi_ij`, no grid distribution required
+        let mut phi = Array2::zeros((n_comp, n_comp));
+        for ((i, j), phi_ij) in phi.indexed_iter_mut() {
+            *phi_ij = (1.0 + (ce_eos[i] / ce_eos[j]).sqrt() * (mw[j] / mw[i]).powf(1.0 / 4.0))
+                .powi(2)
+                / (8.0 * (1.0 + mw[i] / mw[j])).sqrt();
+        }
+
+        // Mole fraction at every grid point
+        let x = (density / &density.sum_axis(Axis_nd(0))).into_value()?; //.into_dimensionality().unwrap();
+
+        //
+        let visc_ref = Zip::from(x.lanes(Axis_nd(0))).map_collect(|x| {
             // Sum over `j` at every grid point
             let phi_i = phi
                 .outer_iter()
