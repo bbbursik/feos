@@ -267,6 +267,11 @@ macro_rules! impl_pore {
                 cutoff_radius: Option<PySINumber>,
                 l_grid: Option<[PySINumber; 3]>,
             ) -> PyResult<Self> {
+                let l = match l_grid {
+                    Some(l) => Some([l[0].try_into()?, l[1].try_into()?, l[2].try_into()?]),
+                    None => None
+                };
+
                 Ok(Self(Pore3D::new(
                     [system_size[0].try_into()?, system_size[1].try_into()?, system_size[2].try_into()?],
                     n_grid,
@@ -276,7 +281,7 @@ macro_rules! impl_pore {
                     angles.map(|angles| [angles[0].into(), angles[1].into(), angles[2].into()]),
                     potential_cutoff,
                     cutoff_radius.map(|c| c.try_into()).transpose()?,
-                    l_grid.map(|c| [c[0].try_into()?, c[1].try_into()?, c[2].try_into()?])
+                    l
                 )))
             }
 

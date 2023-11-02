@@ -22,15 +22,16 @@ use crate::saftvrqmie::python::PySaftVRQMieParameters;
 use crate::saftvrqmie::{SaftVRQMieFunctional, SaftVRQMieOptions};
 
 use crate::eos::IdealGasModel;
+use feos_core::si::Viscosity;
 use feos_core::si::*;
 use feos_core::*;
 use feos_dft::adsorption::*;
+use feos_dft::entropy_scaling::*;
 use feos_dft::interface::*;
 use feos_dft::python::*;
 use feos_dft::solvation::*;
 use feos_dft::*;
-use feos_dft::entropy_scaling::*;
-use feos_dft::fundamental_measure_theory::{FMTFunctional, FMTVersion};
+use ndarray::{Array, Dimension};
 use numpy::convert::ToPyArray;
 use numpy::{PyArray1, PyArray2, PyArray3, PyArray4};
 use pyo3::exceptions::{PyIndexError, PyValueError};
@@ -59,6 +60,69 @@ impl PyFunctionalVariant {
         let eos = functional.ideal_gas(IdealGasModel::NoModel(n));
         Self(Arc::new(eos))
     }
+}
+
+impl EntropyScalingFunctional for FunctionalVariant {
+    fn entropy_scaling_contributions(&self) -> &[Box<dyn EntropyScalingFunctionalContribution>] {
+        match self {
+            #[cfg(feature = "pcsaft")]
+            FunctionalVariant::PcSaft(functional) => functional.entropy_scaling_contributions(),
+            #[cfg(feature = "gc_pcsaft")]
+            FunctionalVariant::GcPcSaft(_) => unimplemented!(),
+            #[cfg(feature = "pets")]
+            FunctionalVariant::Pets(functional) => unimplemented!(),
+            FunctionalVariant::SaftVRQMie(functional) => unimplemented!(),
+            FunctionalVariant::Fmt(functional) => unimplemented!(),
+        }
+    }
+
+    /// Viscosity referaence for entropy scaling for the shear viscosity.
+    fn viscosity_reference<D>(
+        &self,
+        density: &Array<f64, D::Larger>,
+        temperature: Temperature,
+    ) -> EosResult<Viscosity<Array<f64, D>>>
+    where
+        D: Dimension,
+        // U: SIUnit,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        match self {
+            #[cfg(feature = "pcsaft")]
+            FunctionalVariant::PcSaft(functional) => {
+                functional.viscosity_reference(density, temperature)
+            }
+            #[cfg(feature = "gc_pcsaft")]
+            FunctionalVariant::GcPcSaft(_) => unimplemented!(),
+            #[cfg(feature = "pets")]
+            FunctionalVariant::Pets(functional) => unimplemented!(),
+            FunctionalVariant::SaftVRQMie(functional) => unimplemented!(),
+            FunctionalVariant::Fmt(functional) => unimplemented!(),
+        }
+    }
+
+    // /// Correlation function for entropy scaling of the shear viscosity.
+    // fn viscosity_correlation<D>(
+    //     &self,
+    //     s_res: &Array<f64, D>,
+    //     density: &QuantityArray<SIUnit, D::Larger>,
+    // ) -> EosResult<Array<f64, D>>
+    // where
+    //     D: Dimension,
+    //     D::Larger: Dimension<Smaller = D>,
+    // {
+    //     match self {
+    //         #[cfg(feature = "pcsaft")]
+    //         FunctionalVariant::PcSaft(functional) => {
+    //             functional.viscosity_correlation(s_res, density)
+    //         }
+    //         #[cfg(feature = "gc_pcsaft")]
+    //         FunctionalVariant::GcPcSaft(_) => unimplemented!(),
+    //         #[cfg(feature = "pets")]
+    //         FunctionalVariant::Pets(functional) => unimplemented!(),
+    //         FunctionalVariant::Fmt(functional) => unimplemented!(),
+    //     }
+    // }
 }
 
 #[pymethods]

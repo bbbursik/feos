@@ -126,7 +126,7 @@ macro_rules! impl_profile {
             }
 
             /// Calculate the entropy density of the inhomogeneous system for each (residual) contribution.
-            /// 
+            ///
             ///
             /// Parameters
             /// ----------

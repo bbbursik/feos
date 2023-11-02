@@ -11,8 +11,8 @@ use feos_core::{Contributions, EosResult};
 use ndarray::{Array, Array1, Array2, Axis, Dimension, Ix1, Ix2, RemoveAxis};
 // use ndarray_npy::write_npy;
 
-use num_dual::{Dual64, DualVec};
 use feos_core::si::*;
+use num_dual::{Dual64, DualVec};
 // use feos_core::quantity::{QuantityArray, QuantityScalar};
 
 /// entropy scaling trait for functional contributions --> provide a different set of weight functions
@@ -56,22 +56,17 @@ impl<F> DFTProfile<Ix1, F>
 where
     F: HelmholtzEnergyFunctional + EntropyScalingFunctional,
 {
-    // getter function for viscosity reference 
-    pub fn viscosity_reference_1d(&self) -> EosResult<Viscosity<Array<f64,Ix1>>> {
-        self
-        .dft
-        .viscosity_reference::<Ix1>(&self.density.to_reduced(), self.temperature)
+    // getter function for viscosity reference
+    pub fn viscosity_reference_1d(&self) -> EosResult<Viscosity<Array<f64, Ix1>>> {
+        self.dft
+            .viscosity_reference::<Ix1>(&self.density.to_reduced(), self.temperature)
     }
 
-        // provide the weighted densities for entropy scaling
+    // provide the weighted densities for entropy scaling
     pub fn weighted_densities_entropy(&self) -> EosResult<Vec<Array<f64, Ix2>>> {
-        let temperature_red = self
-            .temperature
-            .to_reduced();
+        let temperature_red = self.temperature.to_reduced();
 
-        let functional_contributions_entropy = self
-        .dft
-        .entropy_scaling_contributions();
+        let functional_contributions_entropy = self.dft.entropy_scaling_contributions();
 
         let weight_functions_entropy: Vec<WeightFunctionInfo<f64>> =
             functional_contributions_entropy
