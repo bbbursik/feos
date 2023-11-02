@@ -1,10 +1,12 @@
 use crate::adsorption::FluidParameters;
 use crate::convolver::Convolver;
+use crate::entropy_scaling::{EntropyScalingFunctional, EntropyScalingFunctionalContribution};
 use crate::functional_contribution::*;
 use crate::ideal_chain_contribution::IdealChainContribution;
 use crate::solvation::PairPotential;
+
 use crate::weight_functions::{WeightFunction, WeightFunctionInfo, WeightFunctionShape};
-use feos_core::si::MolarWeight;
+use feos_core::si::{MolarWeight, Temperature, Viscosity, ANGSTROM, GRAM, KB, KELVIN, MOL, NAV};
 use feos_core::{
     Components, DeBroglieWavelength, EosResult, EquationOfState, HelmholtzEnergy,
     HelmholtzEnergyDual, IdealGas, Residual, StateHD,
@@ -15,8 +17,10 @@ use petgraph::graph::{Graph, UnGraph};
 use petgraph::visit::EdgeRef;
 use petgraph::Directed;
 use std::borrow::Cow;
+use std::f32::consts::PI;
 use std::ops::{Deref, MulAssign};
 use std::sync::Arc;
+use typenum::P2;
 
 impl<I: Components + Send + Sync, F: HelmholtzEnergyFunctional> HelmholtzEnergyFunctional
     for EquationOfState<I, F>
@@ -55,6 +59,26 @@ impl<I: Components + Send + Sync, F: FluidParameters> FluidParameters for Equati
 
     fn sigma_ff(&self) -> &Array1<f64> {
         self.residual.sigma_ff()
+    }
+}
+
+impl<I: Components + Send + Sync, F: EntropyScalingFunctional> EntropyScalingFunctional
+    for EquationOfState<I, F>
+{
+    fn entropy_scaling_contributions(&self) -> &[Box<dyn EntropyScalingFunctionalContribution>] {
+        &self.residual.entropy_scaling_contributions()
+    }
+
+    fn viscosity_reference<D>(
+        &self,
+        density: &Array<f64, D::Larger>,
+        temperature: Temperature,
+    ) -> EosResult<Viscosity<Array<f64, D>>>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        self.residual.viscosity_reference(density, temperature)
     }
 }
 
