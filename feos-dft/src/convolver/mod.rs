@@ -10,8 +10,10 @@ use std::ops::{AddAssign, MulAssign, SubAssign};
 use std::sync::Arc;
 
 mod periodic_convolver;
+mod fftw_convolver;
 mod transform;
 pub use periodic_convolver::PeriodicConvolver;
+pub use fftw_convolver::FFTWConvolver;
 use transform::*;
 
 /// Trait for numerical convolutions for DFT.
@@ -79,20 +81,20 @@ where
 /// `WeightFunctionInfo` or the weight functions themselves via
 /// `FFTWeightFunctions`.
 #[derive(Debug, Clone)]
-struct FFTWeightFunctions<T, D: Dimension> {
+pub struct FFTWeightFunctions<T, D: Dimension> {
     /// Either number of components for simple functionals
     /// or idividual segments for group contribution methods
-    pub(crate) segments: usize,
+    pub segments: usize,
     /// Flag if local density is required in the functional
-    pub(crate) local_density: bool,
+    pub local_density: bool,
     /// Container for scalar component-wise weighted densities
-    pub(crate) scalar_component_weighted_densities: Vec<Array<T, D::Larger>>,
+    pub scalar_component_weighted_densities: Vec<Array<T, D::Larger>>,
     /// Container for vector component-wise weighted densities
-    pub(crate) vector_component_weighted_densities: Vec<Array<T, <D::Larger as Dimension>::Larger>>,
+    pub vector_component_weighted_densities: Vec<Array<T, <D::Larger as Dimension>::Larger>>,
     /// Container for scalar FMT weighted densities
-    pub(crate) scalar_fmt_weighted_densities: Vec<Array<T, D::Larger>>,
+    pub scalar_fmt_weighted_densities: Vec<Array<T, D::Larger>>,
     /// Container for vector FMT weighted densities
-    pub(crate) vector_fmt_weighted_densities: Vec<Array<T, <D::Larger as Dimension>::Larger>>,
+    pub vector_fmt_weighted_densities: Vec<Array<T, <D::Larger as Dimension>::Larger>>,
 }
 
 impl<T, D: Dimension> FFTWeightFunctions<T, D> {
