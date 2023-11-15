@@ -107,6 +107,16 @@ impl<T, D: Dimension> FFTWeightFunctions<T, D> {
             + self.scalar_fmt_weighted_densities.len()
             + self.vector_fmt_weighted_densities.len() * dimensions
     }
+
+    // there are more weight functions than weighted densities, since even for FMT weighted
+    // densities there are component weigth functions
+    pub fn n_weight_functions(&self, dimensions: usize) -> usize {
+        (if self.local_density { self.segments } else { 0 })
+            + self.scalar_component_weighted_densities.len() * self.segments
+            + self.vector_component_weighted_densities.len() * self.segments * dimensions
+            + self.scalar_fmt_weighted_densities.len() * self.segments
+            + self.vector_fmt_weighted_densities.len() * dimensions * self.segments
+    }
 }
 
 /// Convolver for 1-D, 2-D & 3-D systems using FFT algorithms to efficiently

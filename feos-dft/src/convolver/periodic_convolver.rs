@@ -16,7 +16,7 @@ pub struct PeriodicConvolver<T, D: Dimension> {
     /// k vectors
     k_abs: Array<f64, D>,
     /// Vector of weight functions for each component in multiple dimensions.
-    weight_functions: Vec<FFTWeightFunctions<T, D>>,
+    pub weight_functions: Vec<FFTWeightFunctions<T, D>>,
     /// Lanczos sigma factor
     lanczos_sigma: Option<Array<f64, D>>,
     /// Vector of forward Fourier transforms in each dimensions
@@ -31,6 +31,26 @@ where
     D::Larger: Dimension<Smaller = D>,
     <D::Larger as Dimension>::Larger: Dimension<Smaller = D::Larger>,
 {
+
+    // new function to return a Perdiodic convolver struct.
+    pub fn new_periodic_2d(
+        axes: &[&Axis],
+        angle: Angle,
+        weight_functions: &[WeightFunctionInfo<T>],
+        lanczos: Option<i32>,
+    ) -> PeriodicConvolver<T, D> {
+        let f = |k: &mut Array<f64, D::Larger>| {
+            let k_y =
+                (&k.index_axis(Axis(0), 1) - &k.index_axis(Axis(0), 0) * angle.cos()) / angle.sin();
+            k.index_axis_mut(Axis(0), 1).assign(&k_y);
+        };
+        Self::new(axes, f, weight_functions, lanczos)
+    }
+
+    pub fn get_weight_functions(&self)-> Vec<FFTWeightFunctions<T, D>>{
+        self.weight_functions.clone()
+    }
+
     pub fn new_2d(
         axes: &[&Axis],
         angle: Angle,
@@ -42,7 +62,7 @@ where
                 (&k.index_axis(Axis(0), 1) - &k.index_axis(Axis(0), 0) * angle.cos()) / angle.sin();
             k.index_axis_mut(Axis(0), 1).assign(&k_y);
         };
-        Self::new(axes, f, weight_functions, lanczos)
+        Arc::new(Self::new(axes, f, weight_functions, lanczos))
     }
 
     pub fn new_3d(
@@ -64,7 +84,7 @@ where
             k.index_axis_mut(Axis(0), 1).assign(&k_y);
             k.index_axis_mut(Axis(0), 2).assign(&k_z);
         };
-        Self::new(axes, f, weight_functions, lanczos)
+        Arc::new(Self::new(axes, f, weight_functions, lanczos))
     }
 
     pub fn new<F: Fn(&mut Array<f64, D::Larger>)>(
@@ -72,7 +92,8 @@ where
         non_orthogonal_correction: F,
         weight_functions: &[WeightFunctionInfo<T>],
         lanczos: Option<i32>,
-    ) -> Arc<dyn Convolver<T, D>> {
+    ) -> PeriodicConvolver<T, D> {
+    // ) -> Arc<dyn Convolver<T, D>> {
         // initialize the Fourier transform
         let mut planner = FftPlanner::new();
         let mut forward_transforms = Vec::with_capacity(axes.len());
@@ -174,13 +195,14 @@ where
             });
         }
 
-        Arc::new(Self {
+        // Arc::new(Self {
+        Self {
             k_abs,
             weight_functions: fft_weight_functions,
             lanczos_sigma,
             forward_transforms,
             inverse_transforms,
-        })
+        }
     }
 }
 
