@@ -51,45 +51,6 @@ where
         self.weight_functions.clone()
     }
 
-    /* 
-    pub fn new_2d(
-        axes: &[&Axis],
-        angle: Angle,
-        weight_functions: &[WeightFunctionInfo<T>],
-        lanczos: Option<i32>,
-    ) -> Arc<dyn Convolver<T, D>> {
-        let f = |k: &mut Array<f64, D::Larger>| {
-            let k_y =
-                (&k.index_axis(Axis(0), 1) - &k.index_axis(Axis(0), 0) * angle.cos()) / angle.sin();
-            k.index_axis_mut(Axis(0), 1).assign(&k_y);
-        };
-        Arc::new(Self::new(axes, f, weight_functions, lanczos))
-    }
-    
-
-    pub fn new_3d(
-        axes: &[&Axis],
-        angles: [Angle; 3],
-        weight_functions: &[WeightFunctionInfo<T>],
-        lanczos: Option<i32>,
-    ) -> Arc<dyn Convolver<T, D>> {
-        let f = |k: &mut Array<f64, D::Larger>| {
-            let [alpha, beta, gamma] = angles;
-            let [k_u, k_v, k_w] = [0, 1, 2].map(|i| k.index_axis(Axis(0), i));
-            let k_y = (&k_v - &k_u * gamma.cos()) / gamma.sin();
-            let xi = (alpha.cos() - gamma.cos() * beta.cos()) / gamma.sin();
-            let zeta = (1.0 - beta.cos().powi(2) - xi * xi).sqrt();
-            let k_z = ((gamma.cos() * xi / gamma.sin() - beta.cos()) * &k_u
-                - xi / gamma.sin() * &k_v
-                + &k_w)
-                / zeta;
-            k.index_axis_mut(Axis(0), 1).assign(&k_y);
-            k.index_axis_mut(Axis(0), 2).assign(&k_z);
-        };
-        Arc::new(Self::new(axes, f, weight_functions, lanczos))
-    }
-    */
-
     pub fn new<F: Fn(&mut Array<f64, D::Larger>)>(
         axes: &[&Axis],
         non_orthogonal_correction: F,
@@ -115,7 +76,6 @@ where
                     .chain(min..0)
                     .map(|i| 2.0 * PI * i as f64 / ax.length())
                     .collect();
-                dbg!(&k_x);
                 k_vec.push(k_x);
                 lengths.push(ax.length());
             } else{
@@ -126,7 +86,6 @@ where
                 let k_x: Array1<_> = (0..=max)
                     .map(|i| 2.0 * PI * i as f64 / ax.length())
                     .collect();
-                dbg!(&k_x);
                 k_vec.push(k_x);
                 lengths.push(ax.length());
             }
@@ -155,24 +114,6 @@ where
         }
         k_abs.map_inplace(|k| *k = k.sqrt());
 
-        // // Lanczos sigma factor
-        // let lanczos_sigma = lanczos.map(|exp| {
-        //     let mut lanczos = Array::ones(k_abs.raw_dim());
-        //     for (i, (k_x, &l)) in k_vec.iter().zip(lengths.iter()).enumerate() {
-        //         let points = k_x.len();
-        //         let m2 = if points % 2 == 0 {
-        //             points as f64 + 2.0
-        //         } else {
-        //             points as f64 + 1.0
-        //         };
-        //         let l_x = k_x.mapv(|k| (k * l / m2).sph_j0().powi(exp));
-        //         for mut l in lanczos.lanes_mut(Axis_nd(i)) {
-        //             l *= &l_x;
-        //         }
-        //     }
-        //     lanczos
-        // });
-
         // Lanczos sigma factor
         let mut k_vec_peek =k_vec.iter().peekable();
         
@@ -198,8 +139,6 @@ where
             }
             lanczos
         });
-
-        dbg!(&lanczos_sigma);
 
         // calculate weight functions in Fourier space and weight constants
         let mut fft_weight_functions = Vec::with_capacity(weight_functions.len());
