@@ -115,7 +115,7 @@ where
                     .chain(min..0)
                     .map(|i| 2.0 * PI * i as f64 / ax.length())
                     .collect();
-    
+                dbg!(&k_x);
                 k_vec.push(k_x);
                 lengths.push(ax.length());
             } else{
@@ -126,7 +126,7 @@ where
                 let k_x: Array1<_> = (0..=max)
                     .map(|i| 2.0 * PI * i as f64 / ax.length())
                     .collect();
-
+                dbg!(&k_x);
                 k_vec.push(k_x);
                 lengths.push(ax.length());
             }
@@ -155,23 +155,51 @@ where
         }
         k_abs.map_inplace(|k| *k = k.sqrt());
 
+        // // Lanczos sigma factor
+        // let lanczos_sigma = lanczos.map(|exp| {
+        //     let mut lanczos = Array::ones(k_abs.raw_dim());
+        //     for (i, (k_x, &l)) in k_vec.iter().zip(lengths.iter()).enumerate() {
+        //         let points = k_x.len();
+        //         let m2 = if points % 2 == 0 {
+        //             points as f64 + 2.0
+        //         } else {
+        //             points as f64 + 1.0
+        //         };
+        //         let l_x = k_x.mapv(|k| (k * l / m2).sph_j0().powi(exp));
+        //         for mut l in lanczos.lanes_mut(Axis_nd(i)) {
+        //             l *= &l_x;
+        //         }
+        //     }
+        //     lanczos
+        // });
+
         // Lanczos sigma factor
+        let mut k_vec_peek =k_vec.iter().peekable();
+        
         let lanczos_sigma = lanczos.map(|exp| {
             let mut lanczos = Array::ones(k_abs.raw_dim());
-            for (i, (k_x, &l)) in k_vec.iter().zip(lengths.iter()).enumerate() {
-                let points = k_x.len();
+            let mut i = 0;
+            while let Some(k_x) = k_vec_peek.next() {
+                let points =  if k_vec_peek.peek().is_some(){
+                     k_x.len()
+                }else{
+                    (k_x.len() -1 )*2
+                };
                 let m2 = if points % 2 == 0 {
                     points as f64 + 2.0
                 } else {
                     points as f64 + 1.0
                 };
-                let l_x = k_x.mapv(|k| (k * l / m2).sph_j0().powi(exp));
+                let l_x = k_x.mapv(|k| (k * lengths[i] / m2).sph_j0().powi(exp));
                 for mut l in lanczos.lanes_mut(Axis_nd(i)) {
                     l *= &l_x;
                 }
+                i = i + 1;
             }
             lanczos
         });
+
+        dbg!(&lanczos_sigma);
 
         // calculate weight functions in Fourier space and weight constants
         let mut fft_weight_functions = Vec::with_capacity(weight_functions.len());
