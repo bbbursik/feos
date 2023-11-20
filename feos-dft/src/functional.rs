@@ -17,6 +17,8 @@ use petgraph::Directed;
 use std::borrow::Cow;
 use std::ops::{Deref, MulAssign};
 use std::sync::Arc;
+use ndarray::Axis as Axis_nd;
+
 
 impl<I: Components + Send + Sync, F: HelmholtzEnergyFunctional> HelmholtzEnergyFunctional
     for EquationOfState<I, F>
@@ -249,6 +251,46 @@ pub trait HelmholtzEnergyFunctional: Components + Sized + Send + Sync {
             convolver.functional_derivative(&partial_derivatives),
         ))
     }
+
+
+     /// Calculate the (residual) intrinsic functional derivative $\frac{\delta\mathcal{F}}{\delta\rho_i(\mathbf{r})}$.
+     #[allow(clippy::type_complexity)]
+     fn partial_derivatives_fftw<D>(
+         &self,
+         temperature: f64,
+         n_wd_contribs: &Vec<usize>,
+         weighted_densities: Array<f64, D::Larger>,
+     ) -> EosResult<Array<f64, D::Larger>>
+     where
+         D: Dimension,
+         D::Larger: Dimension<Smaller = D>,
+     {
+        // dbg!(&weighted_densities);
+
+        //  let weighted_densities = convolver.weighted_densities(density);
+         let contributions = self.contributions();
+         let mut k = 0;
+         let mut partial_derivatives = Array::zeros(weighted_densities.shape());
+         for (c, &nwd) in contributions.iter().zip(n_wd_contribs.iter()) {
+             let wd = weighted_densities.slice_axis(Axis_nd(0), Slice::from(k..k+nwd)).to_owned();
+             let ngrid = wd.len() / nwd;
+             let pd = partial_derivatives.slice_axis_mut(Axis_nd(0), Slice::from(k..k+nwd));
+             let mut phi = Array::zeros(wd.raw_dim().remove_axis(Axis(0)));
+
+             c.first_partial_derivatives(
+                 temperature,
+                 wd.into_shape((nwd, ngrid)).unwrap(),
+                 phi.view_mut().into_shape(ngrid).unwrap(),
+                 pd.into_shape((nwd,ngrid)).unwrap(),
+             )?;
+             k = k + nwd;
+         }
+        //  dbg!(&partial_derivatives);
+         Ok(
+            partial_derivatives.into_dimensionality().unwrap()
+         )
+     }
+ 
 
 
     /// Calculate the individual contributions to the entropy density.
