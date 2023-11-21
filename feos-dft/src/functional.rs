@@ -291,6 +291,39 @@ pub trait HelmholtzEnergyFunctional: Components + Sized + Send + Sync {
          )
      }
  
+     /// Calculate the (residual) intrinsic functional derivative $\frac{\delta\mathcal{F}}{\delta\rho_i(\mathbf{r})}$.
+    #[allow(clippy::type_complexity)]
+    fn partial_derivatives<D>(
+        &self,
+        temperature: f64,
+        density: &Array<f64, D::Larger>,
+        convolver: &Arc<dyn Convolver<f64, D>>,
+    ) -> EosResult<Vec<Array<f64, D::Larger>>>
+    where
+        D: Dimension,
+        D::Larger: Dimension<Smaller = D>,
+    {
+        let weighted_densities = convolver.weighted_densities(density);
+        let contributions = self.contributions();
+        let mut partial_derivatives = Vec::with_capacity(contributions.len());
+        let mut helmholtz_energy_density = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+        for (c, wd) in contributions.iter().zip(weighted_densities) {
+            let nwd = wd.shape()[0];
+            let ngrid = wd.len() / nwd;
+            let mut phi = Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+            let mut pd = Array::zeros(wd.raw_dim());
+            c.first_partial_derivatives(
+                temperature,
+                wd.into_shape((nwd, ngrid)).unwrap(),
+                phi.view_mut().into_shape(ngrid).unwrap(),
+                pd.view_mut().into_shape((nwd, ngrid)).unwrap(),
+            )?;
+            partial_derivatives.push(pd);
+            helmholtz_energy_density += &phi;
+        }
+        Ok(partial_derivatives)
+    }
+
 
 
     /// Calculate the individual contributions to the entropy density.

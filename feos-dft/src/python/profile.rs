@@ -97,6 +97,15 @@ macro_rules! impl_profile {
             }
 
             #[getter]
+            fn get_partial_derivatives<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr2<f64>>> {
+                let pd = self.0.profile.partial_derivatives()?;
+                Ok(pd.into_iter().map(|pdi| pdi.view().to_pyarray(py)).collect())
+            }
+
+            #[getter]
             fn get_functional_derivative<'py>(
                 &self,
                 py: Python<'py>,

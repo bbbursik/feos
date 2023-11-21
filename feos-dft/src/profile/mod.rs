@@ -359,6 +359,15 @@ where
             .weighted_densities(&self.density.to_reduced()))
     }
 
+    // getter for partial derivatives (only for debugging --> delete)
+    pub fn partial_derivatives(&self) -> EosResult<Vec<Array<f64, D::Larger>>> {
+        Ok(self
+            .dft.partial_derivatives(self.temperature.to_reduced(),
+            &self.density.to_reduced(),
+            &self.convolver)?)
+    }
+
+
     #[allow(clippy::type_complexity)]
     pub fn residual(&self, log: bool) -> EosResult<(Array<f64, D::Larger>, Array1<f64>, f64)> {
         // Read from profile
