@@ -1,3 +1,4 @@
+use crate::{WeightFunctionInfo, ConvolverFFT};
 use crate::convolver::{BulkConvolver, Convolver};
 use crate::functional::{HelmholtzEnergyFunctional, DFT};
 use crate::geometry::Grid;
@@ -5,8 +6,9 @@ use crate::solver::{DFTSolver, DFTSolverLog};
 use feos_core::si::{Density, Length, Moles, Quantity, Temperature, Volume, _Volume, DEGREES};
 use feos_core::{Components, EosError, EosResult, State};
 use ndarray::{
-    Array, Array1, Array2, Array3, ArrayBase, Axis as Axis_nd, Data, Dimension, Ix1, Ix2, Ix3,
+    Array, Array1, Array2, Array3, ArrayBase, Axis as Axis_nd, Data, Dimension, Ix1, Ix2, Ix3, RemoveAxis,
 };
+use num_dual::Dual64;
 use std::ops::{Add, MulAssign};
 use std::sync::Arc;
 use typenum::Sum;
@@ -347,6 +349,35 @@ impl<D: Dimension + Clone, F> Clone for DFTProfile<D, F> {
     }
 }
 
+impl<D: Dimension + RemoveAxis + 'static, F: HelmholtzEnergyFunctional> DFTProfile<D, F>
+where
+    D::Larger: Dimension<Smaller = D>,
+    D::Smaller: Dimension<Larger = D>,
+    <D::Larger as Dimension>::Larger: Dimension<Smaller = D::Larger>,
+{
+  // getter for entropy_density_contributions (only for debugging --> delete)
+    
+    /// Get the individual contributions to the entropy density.
+    ///
+    /// Untested with heterosegmented functionals.
+    pub fn get_entropy_density_contributions(
+        &self,
+    ) -> EosResult<Vec<Array<f64, D>>> {
+        let density = self.density.to_reduced();
+        let temperature = self.temperature.to_reduced();
+        let temperature_dual = Dual64::from(temperature).derivative();
+        let functional_contributions = self.dft.contributions();
+        let weight_functions: Vec<WeightFunctionInfo<Dual64>> = functional_contributions
+            .iter()
+            .map(|c| c.weight_functions(temperature_dual))
+            .collect();
+        let convolver = ConvolverFFT::plan(&self.grid, &weight_functions, None);
+        self.dft.entropy_density_contributions(temperature, &density, &convolver)
+    }
+
+
+}
+
 impl<D: Dimension, F> DFTProfile<D, F>
 where
     D::Larger: Dimension<Smaller = D>,
@@ -366,6 +397,8 @@ where
             &self.density.to_reduced(),
             &self.convolver)?)
     }
+
+  
 
 
     #[allow(clippy::type_complexity)]

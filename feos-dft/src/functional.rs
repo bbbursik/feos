@@ -260,7 +260,7 @@ pub trait HelmholtzEnergyFunctional: Components + Sized + Send + Sync {
          temperature: f64,
          n_wd_contribs: &Vec<usize>,
          weighted_densities: Array<f64, D::Larger>,
-     ) -> EosResult<Array<f64, D::Larger>>
+     ) -> EosResult<(Array<f64, D::Larger>, Array<f64, D::Larger>)>
      where
          D: Dimension,
          D::Larger: Dimension<Smaller = D>,
@@ -271,25 +271,77 @@ pub trait HelmholtzEnergyFunctional: Components + Sized + Send + Sync {
          let contributions = self.contributions();
          let mut k = 0;
          let mut partial_derivatives = Array::zeros(weighted_densities.shape());
-         for (c, &nwd) in contributions.iter().zip(n_wd_contribs.iter()) {
+
+         let mut dim = vec![n_wd_contribs.len()];
+         weighted_densities.shape().iter().skip(1).for_each(|&d| dim.push(d));
+         let mut helmholtz_energy_density = Array::zeros(dim).into_dimensionality().unwrap();
+
+        //  let mut helmholtz_energy_density = n_wd_contribs.len();//Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+         for ((c, &nwd), phi) in contributions.iter().zip(n_wd_contribs.iter()).zip(helmholtz_energy_density.outer_iter_mut()) {
              let wd = weighted_densities.slice_axis(Axis_nd(0), Slice::from(k..k+nwd)).to_owned();
              let ngrid = wd.len() / nwd;
              let pd = partial_derivatives.slice_axis_mut(Axis_nd(0), Slice::from(k..k+nwd));
-             let mut phi = Array::zeros(wd.raw_dim().remove_axis(Axis(0)));
+            //  let mut phi = Array::zeros(wd.raw_dim().remove_axis(Axis(0)));
 
              c.first_partial_derivatives(
                  temperature,
                  wd.into_shape((nwd, ngrid)).unwrap(),
-                 phi.view_mut().into_shape(ngrid).unwrap(),
+                 phi.into_shape(ngrid).unwrap(),
                  pd.into_shape((nwd,ngrid)).unwrap(),
              )?;
+            //  helmholtz_energy_density.index_axis_mut(Axis_nd(0), i).assign(&phi);
+
              k = k + nwd;
          }
         //  dbg!(&partial_derivatives);
-         Ok(
-            partial_derivatives.into_dimensionality().unwrap()
-         )
+         Ok((
+            partial_derivatives.into_dimensionality().unwrap(),
+            helmholtz_energy_density
+         ))
      }
+
+
+      /// Calculate the helmholtz_energy_densities for the fftw convolver.
+      #[allow(clippy::type_complexity)]
+      fn helmholtz_energy_densities_fftw<D>(
+          &self,
+          temperature: f64,
+          n_wd_contribs: &Vec<usize>,
+          weighted_densities: Array<f64, D::Larger>,
+      ) -> EosResult< Array<f64, D::Larger>>
+      where
+          D: Dimension,
+          D::Larger: Dimension<Smaller = D>,
+      {
+ 
+         //  let weighted_densities = convolver.weighted_densities(density);
+          let contributions = self.contributions();
+          let mut k = 0;
+ 
+          let mut dim = vec![n_wd_contribs.len()];
+          weighted_densities.shape().iter().skip(1).for_each(|&d| dim.push(d));
+          let mut helmholtz_energy_density = Array::zeros(dim).into_dimensionality().unwrap();
+ 
+         //  let mut helmholtz_energy_density = n_wd_contribs.len();//Array::zeros(density.raw_dim().remove_axis(Axis(0)));
+          for ((c, &nwd), mut phi) in contributions.iter().zip(n_wd_contribs.iter()).zip(helmholtz_energy_density.outer_iter_mut()) {
+              let wd = weighted_densities.slice_axis(Axis_nd(0), Slice::from(k..k+nwd));
+              let ngrid = wd.len() / nwd;
+ 
+              let phi_contrib = c.calculate_helmholtz_energy_density(
+                  temperature,
+                  wd.into_shape((nwd, ngrid)).unwrap(),
+              )?;
+             //  helmholtz_energy_density.index_axis_mut(Axis_nd(0), i).assign(&phi);
+              phi.assign(&phi_contrib);
+              k = k + nwd;
+          }
+         //  dbg!(&partial_derivatives);
+          Ok(
+             helmholtz_energy_density
+          )
+      }
+
+
  
      /// Calculate the (residual) intrinsic functional derivative $\frac{\delta\mathcal{F}}{\delta\rho_i(\mathbf{r})}$.
     #[allow(clippy::type_complexity)]

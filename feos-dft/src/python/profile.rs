@@ -106,6 +106,15 @@ macro_rules! impl_profile {
             }
 
             #[getter]
+            fn get_entropy_density_contributions<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr<f64>>> {
+                let pd = self.0.profile.get_entropy_density_contributions()?;
+                Ok(pd.into_iter().map(|pdi| pdi.view().to_pyarray(py)).collect())
+            }
+
+            #[getter]
             fn get_functional_derivative<'py>(
                 &self,
                 py: Python<'py>,
