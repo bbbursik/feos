@@ -122,6 +122,23 @@ macro_rules! impl_profile {
                 Ok(self.0.profile.functional_derivative()?.view().to_pyarray(py))
             }
 
+            #[getter]
+            fn get_helmholtz_energy_density<'py>(&self, py: Python<'py>) -> PyResult<&'py $arr<f64>> {
+                Ok(
+                    self.0.profile.helmholtz_energy_density()?.view().to_pyarray(py)
+                )
+            }
+
+
+            #[getter]
+            fn get_helmholtz_energy_density_contributions<'py>(
+                &self,
+                py: Python<'py>,
+            ) -> PyResult<Vec<&'py $arr<f64>>> {
+                let pd = self.0.profile.helmholtz_energy_density_contributions()?;
+                Ok(pd.into_iter().map(|pdi| pdi.view().to_pyarray(py)).collect())
+            }
+
             /// Calculate the entropy density of the inhomogeneous system.
             ///
             /// Parameters
@@ -191,6 +208,9 @@ macro_rules! impl_profile {
                     self.0.profile.grand_potential_density()?,
                 ))
             }
+
+         
+
             $(
                 #[getter]
                 fn get_drho_dmu(&self) -> PyResult<$si_arr3> {

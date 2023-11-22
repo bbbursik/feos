@@ -49,6 +49,42 @@ where
         Ok(Pressure::from_reduced(f * t))
     }
 
+    /// Calculate the grand potential density $\omega$.
+    pub fn helmholtz_energy_density(&self) -> EosResult<Array<f64, D>> {
+        // Calculate residual Helmholtz energy density and functional derivative
+        let t = self.temperature.to_reduced();
+        let rho = self.density.to_reduced();
+        let (f, _dfdrho) = self.dft.functional_derivative(t, &rho, &self.convolver)?;
+
+        Ok(f)
+    }
+
+    /// Calculate the grand potential density $\omega$.
+    pub fn helmholtz_energy_density_contributions(&self) -> EosResult<Vec<Array<f64, D>>> {
+        // Calculate residual Helmholtz energy density and functional derivative
+        let t = self.temperature.to_reduced();
+        let rho = self.density.to_reduced();
+        let weighted_densities = self.convolver.weighted_densities(&rho);
+        let functional_contributions = self.dft.contributions();
+        let mut helmholtz_energy_density = Vec::with_capacity(weighted_densities.len());
+        for (c, wd) in functional_contributions.iter().zip(weighted_densities) {
+            let nwd = wd.shape()[0];
+            let ngrid = wd.len() / nwd;
+            let mut grid_shape = vec![];
+            wd.shape().iter().skip(1).for_each(|&d| grid_shape.push(d));
+            let phi_contrib = c.calculate_helmholtz_energy_density(
+                    t,
+                    wd.into_shape((nwd, ngrid)).unwrap().view(),
+                )?.into_shape(grid_shape).unwrap().into_dimensionality().unwrap();
+
+            helmholtz_energy_density.push(phi_contrib);
+        }
+        Ok(helmholtz_energy_density)
+    }
+
+
+
+
     /// Calculate the grand potential $\Omega$.
     pub fn grand_potential(&self) -> EosResult<Energy> {
         Ok(self.integrate(&self.grand_potential_density()?))
