@@ -868,6 +868,52 @@ pub mod utils {
         Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
     }
 
+    pub fn test_parameters() -> Arc<PcSaftParameters> {
+        let binary_json = r#"[
+           { "identifier": {
+                "cas": "74-82-8",
+                "name": "methane_test",
+                "iupac_name": "methane",
+                "smiles": "C",
+                "inchi": "InChI=1/CH4/h1H4",
+                "formula": "CH4"
+            },
+            "model_record": {
+                "m": 1.0,
+                "sigma": 4.0,
+                "epsilon_k": 150.03,
+                "viscosity": [-0.8013, -1.9972,-0.2907, -0.0467],
+                "thermal_conductivity": [-0.15348,  -0.6388, 1.21342, -0.01664],
+                "diffusion": [-0.675163251512047, 0.3212017677695878, 0.100175249144429, 0.0, 0.0]
+            },
+            "molarweight": 16.043
+        },
+        {
+            "identifier": {
+                "cas": "7440-37-1",
+                "name": "argon_test",
+                "iupac_name": "argon",
+                "smiles": "[Ar]",
+                "inchi": "InChI=1/Ar",
+                "formula": "Ar"
+            },
+            "model_record": {
+                "m": 1.0,
+                "sigma": 2.0,
+                "epsilon_k": 122.23,
+                "viscosity": [-0.8013, -1.9972,-0.2907, -0.0467],
+                "thermal_conductivity": [-0.15348,  -0.6388, 1.21342, -0.01664],
+                "diffusion": [-0.675163251512047, 0.3212017677695878, 0.100175249144429, 0.0, 0.0]
+            },
+            "molarweight": 39.948
+        }
+        ]"#;
+        let kij = 0.0;
+        let binary_record: Vec<PureRecord<PcSaftRecord>> =
+            serde_json::from_str(binary_json).expect("Unable to parse json.");
+        Arc::new(PcSaftParameters::new_binary(binary_record, Some(kij.into())).unwrap())
+    }
+
     pub fn dodecane_nitrogen_parameters() -> Arc<PcSaftParameters> {
         let binary_json = r#"[
             {
