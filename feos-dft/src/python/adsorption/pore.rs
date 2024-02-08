@@ -245,7 +245,7 @@ macro_rules! impl_pore {
         /// Pore3D
         ///
         #[pyclass(name = "Pore3D")]
-        #[pyo3(text_signature = "(system_size, angles, n_grid, coordinates, sigma_ss, epsilon_k_ss, potential_cutoff=None, cutoff_radius=None)")]
+        #[pyo3(text_signature = "(system_size, angles, n_grid, coordinates, sigma_ss, epsilon_k_ss, potential_cutoff=None, cutoff_radius=None, l_grid=None)")]
         pub struct PyPore3D(Pore3D);
 
         #[pyclass(name = "PoreProfile3D")]
@@ -265,7 +265,12 @@ macro_rules! impl_pore {
                 epsilon_k_ss: &PyArray1<f64>,
                 potential_cutoff: Option<f64>,
                 cutoff_radius: Option<PySINumber>,
+                l_grid: Option<[PySINumber; 3]>,
             ) -> PyResult<Self> {
+                let l = match l_grid {
+                    Some(l) => Some([l[0].try_into()?, l[1].try_into()?, l[2].try_into()?]),
+                    None => None
+                };
                 Ok(Self(Pore3D::new(
                     [system_size[0].try_into()?, system_size[1].try_into()?, system_size[2].try_into()?],
                     angles.map(|angles| [angles[0].into(), angles[1].into(), angles[2].into()]),
@@ -275,6 +280,7 @@ macro_rules! impl_pore {
                     epsilon_k_ss.to_owned_array(),
                     potential_cutoff,
                     cutoff_radius.map(|c| c.try_into()).transpose()?,
+                    l
                 )))
             }
 
