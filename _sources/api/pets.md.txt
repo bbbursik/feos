@@ -12,9 +12,10 @@
     :toctree: generated/
 
     Identifier
-    ChemicalRecord
+    IdentifierOption
     PureRecord
     BinaryRecord
+    PetsBinaryRecord
     PetsRecord
     PetsParameters
 ```
